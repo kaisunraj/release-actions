@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 const mockPulls = {
   list: jest.fn().mockResolvedValue({ data: [] }),
   create: jest.fn().mockResolvedValue({
@@ -22,7 +25,7 @@ const mockOctokit = {
 
 module.exports = {
   getOctokit: jest.fn(() => mockOctokit),
-  context: { repo: { owner: "owner", repo: "repo" } },
+  context: { repo: { owner: process.env.GITHUB_REPOSITORY_OWNER || "owner", repo: process.env.GITHUB_REPOSITORY_NAME || "repo" } },
   // Expose rest at the top level so tests can assert on it directly
   rest: { pulls: mockPulls },
 };

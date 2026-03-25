@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
 
+
 /**
  * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
  * and returning the one with the highest version number

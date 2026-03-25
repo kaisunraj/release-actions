@@ -1,18 +1,22 @@
-import { getTagFromBranchName } from "./libs/git-utils";
-
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { GitHub } from "@actions/github/lib/utils";
+import { exec } from "node:child_process";
+import { getTagFromBranchName } from "./libs/git-utils";
 
-const { exec } = require("child_process");
+type Octokit = ReturnType<typeof github.getOctokit>;
 
-function getCommitMessages(baseBranch: string, targetBranch: string): Promise<string[]> {
+function getCommitMessages(
+  baseBranch: string,
+  targetBranch: string,
+): Promise<string[]> {
   return new Promise((resolve, reject) => {
     exec(
       `git log ${baseBranch}..${targetBranch} --pretty=format:"%s"`,
       (error: Error | null, stdout: string, stderr: string) => {
         if (error) {
-          return reject(new Error(`Error fetching commit messages: ${error.message}`));
+          return reject(
+            new Error(`Error fetching commit messages: ${error.message}`),
+          );
         }
         if (stderr) {
           return reject(new Error(`Error output: ${stderr}`));
@@ -46,59 +50,78 @@ function generateJiraLinks(tickets: string[]) {
   );
 }
 
-async function releaseExists(octokit: InstanceType<typeof GitHub>, tag: string) : Promise<number | false> {
+async function releaseExists(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  tag: string,
+): Promise<number | false> {
   try {
-    const response = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
-      owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
-      repo: core.getInput("GITHUB_REPOSITORY_NAME"),
-      tag: tag,
-      headers: {
-        'X-GitHub-Api-Version': '2026-03-10'
-      }
-    });
-    return response.id; // If the release exists, return its ID
+    const response = await octokit.request(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      {
+        owner,
+        repo,
+        tag,
+        headers: {
+          "X-GitHub-Api-Version": "2026-03-10",
+        },
+      },
+    );
+    return response.data.id;
   } catch (error: any) {
     if (error.status === 404) {
-      return false; // Release does not exist
+      return false;
     }
-    throw error; // Rethrow other errors
+    throw error;
   }
 }
 
-async function createRelease(octokit: InstanceType<typeof GitHub>, tag: string) {
-  await octokit.request('POST /repos/{owner}/{repo}/releases', {
-    owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
-    repo: core.getInput("GITHUB_REPOSITORY_NAME"),
+async function createRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  tag: string,
+  targetBranch: string,
+) {
+  const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
+    owner,
+    repo,
     tag_name: tag,
-    target_commitish: 'master',
+    target_commitish: targetBranch,
     name: tag,
-    body: 'Description of the release',
+    body: "Description of the release",
     draft: false,
     prerelease: false,
     generate_release_notes: false,
     headers: {
-      'X-GitHub-Api-Version': '2026-03-10'
-    }
-  })
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+  return response.data.id;
 }
 
-async function updateRelease(octokit: InstanceType<typeof GitHub>, tag: string, baseBranch: string) {
-  await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
+async function updateRelease(
+  octokit: Octokit,
+  releaseId: number,
+  tag: string,
+  baseBranch: string,
+) {
+  await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
     owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
     repo: core.getInput("GITHUB_REPOSITORY_NAME"),
-    release_id: tag,
+    release_id: releaseId,
     tag_name: tag,
     target_commitish: baseBranch,
     name: tag,
-    body: 'Description of the release',
+    body: "Description of the release",
     draft: false,
     prerelease: false,
     headers: {
-      'X-GitHub-Api-Version': '2026-03-10'
-    }
-  })
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
 }
-  
 
 async function generateReleaseNotes(baseBranch: string, targetBranch: string) {
   const releaseTag = getTagFromBranchName(targetBranch);
@@ -114,16 +137,8 @@ async function generateReleaseNotes(baseBranch: string, targetBranch: string) {
   console.log("Jira Links:", links);
 }
 
-function run() {
-  const octokit = github.getOctokit(core.getInput("GITHUB_TOKEN"));
-  const baseBranch = core.getInput("base_branch");
-  const targetBranch = core.getInput("target_branch");
-  
-  generateReleaseNotes(baseBranch, targetBranch)
-    .then(() => {
-      console.log("Release notes generated successfully.");
-    })
-    .catch((error) => {
-      core.setFailed(error.message);
-    });
+export async function run() {
 }
+
+run();
+
