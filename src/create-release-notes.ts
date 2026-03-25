@@ -46,10 +46,9 @@ function generateJiraLinks(tickets: string[]) {
   );
 }
 
-
-async function releaseExists(octokit: InstanceType<typeof GitHub>, tag: string) {
+async function releaseExists(octokit: InstanceType<typeof GitHub>, tag: string) : Promise<number | false> {
   try {
-    await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
+    const response = await octokit.request('GET /repos/{owner}/{repo}/releases/tags/{tag}', {
       owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
       repo: core.getInput("GITHUB_REPOSITORY_NAME"),
       tag: tag,
@@ -57,7 +56,7 @@ async function releaseExists(octokit: InstanceType<typeof GitHub>, tag: string) 
         'X-GitHub-Api-Version': '2026-03-10'
       }
     });
-    return true; // Release exists
+    return response.id; // If the release exists, return its ID
   } catch (error: any) {
     if (error.status === 404) {
       return false; // Release does not exist
