@@ -1,0 +1,22 @@
+name: "Create Release PR"
+description: "Raises a PR from a target branch into a base branch, titled with the latest release tag."
+
+inputs:
+  base-branch:
+    description: "The branch to merge into (e.g. main)"
+    required: true
+  target-branch:
+    description: "The branch to merge from (e.g. release/1.2.3)"
+    required: true
+  github-token:
+    description: "GitHub token used to authenticate API requests"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  pull-request-url:
+    description: "The URL of the created pull request"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
