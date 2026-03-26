@@ -152,10 +152,10 @@ async function generateReleaseNotes(
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
     await updateRelease(octokit, releaseExistsId, releaseTag, baseBranch);
-    console.log(`Updated existing release with tag ${releaseTag}`);
+    console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
   } else {
-    await createRelease(octokit, owner, repo, releaseTag, releaseBranch);
-    console.log(`Created new release with tag ${releaseTag}`);
+    const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch);
+    console.log(`Created new release with tag ${releaseTag} and id ${id}`);
   }
 }
 
@@ -184,4 +184,11 @@ export {
   generateReleaseNotesContent as _generateReleaseNotesContent,
 };
 
-run();
+generateReleaseNotes(
+  github.getOctokit(process.env.GITHUB_TOKEN),
+  "kaisunraj",
+  "release-actions",
+  "ovp",
+  "main",
+  "releases/v999.9.9",
+);
