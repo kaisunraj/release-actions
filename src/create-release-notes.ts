@@ -7,11 +7,11 @@ type Octokit = ReturnType<typeof github.getOctokit>;
 
 function getCommitMessages(
   baseBranch: string,
-  targetBranch: string,
+  releaseBranch: string,
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
     exec(
-      `git log ${baseBranch}..${targetBranch} --pretty=format:"%s"`,
+      `git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`,
       (error: Error | null, stdout: string, stderr: string) => {
         if (error) {
           return reject(
@@ -82,7 +82,7 @@ async function createRelease(
   owner: string,
   repo: string,
   tag: string,
-  targetBranch: string,
+  releaseBranch: string,
 ) {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
@@ -90,7 +90,7 @@ async function createRelease(
       owner,
       repo,
       tag_name: tag,
-      target_commitish: targetBranch,
+      target_commitish: releaseBranch,
       name: tag,
       body: "Description of the release",
       draft: false,
@@ -108,14 +108,14 @@ async function updateRelease(
   octokit: Octokit,
   releaseId: number,
   tag: string,
-  baseBranch: string,
+  releaseBranch: string,
 ) {
   await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
     owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
     repo: core.getInput("GITHUB_REPOSITORY_NAME"),
     release_id: releaseId,
     tag_name: tag,
-    target_commitish: baseBranch,
+    target_commitish: releaseBranch,
     name: tag,
     body: "Description of the release",
     draft: false,
@@ -139,10 +139,10 @@ async function generateReleaseNotes(
   repo: string,
   confluenceSpace: string,
   baseBranch: string,
-  targetBranch: string,
+  releaseBranch: string,
 ) {
-  const releaseTag = getTagFromBranchName(targetBranch);
-  const commitMessages = await getCommitMessages(baseBranch, targetBranch);
+  const releaseTag = getTagFromBranchName(releaseBranch);
+  const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
   const tickets = filterJiraTickets(commitMessages);
   console.log("Jira Tickets:", tickets);
   const links = generateJiraLinks(confluenceSpace, tickets);
@@ -154,7 +154,7 @@ async function generateReleaseNotes(
     await updateRelease(octokit, releaseExistsId, releaseTag, baseBranch);
     console.log(`Updated existing release with tag ${releaseTag}`);
   } else {
-    await createRelease(octokit, owner, repo, releaseTag, targetBranch);
+    await createRelease(octokit, owner, repo, releaseTag, releaseBranch);
     console.log(`Created new release with tag ${releaseTag}`);
   }
 }
@@ -162,7 +162,7 @@ async function generateReleaseNotes(
 export async function run() {
   const octokit = github.getOctokit(core.getInput("github-token"));
   const baseBranch = core.getInput("base-branch");
-  const targetBranch = core.getInput("target-branch");
+  const releaseBranch = core.getInput("release-branch");
   const confluenceSpace = core.getInput("confluence-space");
   const { owner, repo } = github.context.repo;
   await generateReleaseNotes(
@@ -171,7 +171,7 @@ export async function run() {
     repo,
     confluenceSpace,
     baseBranch,
-    targetBranch,
+    releaseBranch,
   );
 }
 
