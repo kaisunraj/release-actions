@@ -44,9 +44,9 @@ function filterJiraTickets(commitMessages: string[]) {
   return Array.from(tickets);
 }
 
-function generateJiraLinks(tickets: string[]) {
+function generateJiraLinks(confluenceSpace: string, tickets: string[]) {
   return tickets.map(
-    (ticket) => `https://tecsagroup.atlassian.net/browse/${ticket}`,
+    (ticket) => `https://${confluenceSpace}.atlassian.net/browse/${ticket}`,
   );
 }
 
@@ -137,19 +137,15 @@ async function generateReleaseNotes(
   octokit: Octokit,
   owner: string,
   repo: string,
+  confluenceSpace: string,
   baseBranch: string,
   targetBranch: string,
 ) {
   const releaseTag = getTagFromBranchName(targetBranch);
-  if (!releaseTag) {
-    throw new Error(
-      `Branch name "${targetBranch}" does not match expected release branch pattern "releases/v*.*.*"`,
-    );
-  }
   const commitMessages = await getCommitMessages(baseBranch, targetBranch);
   const tickets = filterJiraTickets(commitMessages);
   console.log("Jira Tickets:", tickets);
-  const links = generateJiraLinks(tickets);
+  const links = generateJiraLinks(confluenceSpace, tickets);
   console.log("Jira Links:", links);
   const releaseNotesContent = generateReleaseNotesContent(links);
   console.log("Release Notes Content:", releaseNotesContent);
@@ -164,16 +160,28 @@ async function generateReleaseNotes(
 }
 
 export async function run() {
-  // const octokit = github.getOctokit(core.getInput("github-token"));
-  // const baseBranch = core.getInput("base-branch");
-  // const targetBranch = core.getInput("target-branch");
-  // const { owner, repo } = github.context.repo;
-  // await generateReleaseNotes(octokit, owner, repo, baseBranch, targetBranch);
+  const octokit = github.getOctokit(core.getInput("github-token"));
+  const baseBranch = core.getInput("base-branch");
+  const targetBranch = core.getInput("target-branch");
+  const confluenceSpace = core.getInput("confluence-space");
+  const { owner, repo } = github.context.repo;
+  await generateReleaseNotes(
+    octokit,
+    owner,
+    repo,
+    confluenceSpace,
+    baseBranch,
+    targetBranch,
+  );
 }
 
-export { 
+export {
   getCommitMessages as _getCommitMessages,
-  generateReleaseNotesContent as _generateReleaseNotesContent 
+  filterJiraTickets as _filterJiraTickets,
+  generateJiraLinks as _generateJiraLinks,
+  releaseExists as _releaseExists,
+  Octokit as _Octokit,
+  generateReleaseNotesContent as _generateReleaseNotesContent,
 };
 
 run();

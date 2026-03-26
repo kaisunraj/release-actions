@@ -1,7 +1,6 @@
 import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
 
-
 /**
  * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
  * and returning the one with the highest version number
@@ -25,12 +24,16 @@ export async function getLatestReleaseTag(
   );
 
   if (releaseBranches.length === 0) {
-    core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
+    core.setFailed(
+      "No release branches found matching pattern 'releases/v*.*.*'",
+    );
     return undefined;
   }
 
   // Sort the release branches by version number and get the latest one
-  const releaseBranchNames = releaseBranches.map((branch: { name: string }) => branch.name);
+  const releaseBranchNames = releaseBranches.map(
+    (branch: { name: string }) => branch.name,
+  );
   releaseBranchNames.sort();
 
   const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
@@ -42,7 +45,10 @@ export async function getLatestReleaseTag(
  * Extracts the version tag from a branch name like "releases/v1.2.3"
  * Returns null if the branch name doesn't match the expected pattern
  */
-export function getTagFromBranchName(branchName: string): string | null {
+export function getTagFromBranchName(branchName: string): string {
   const match = branchName.match(/^releases\/(v\d+\.\d+\.\d+)$/);
-  return match ? match[1] : null;
+  if (!match) {
+    throw new Error(`Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`);
+  }
+  return match[1];
 }
