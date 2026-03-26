@@ -2,9 +2,10 @@
   "name": "release-pr-action",
   "version": "1.0.0",
   "description": "GitHub Action to raise a release PR from a target branch into a base branch",
-  "main": "dist/index.js",
   "scripts": {
-    "build": "ncc build src/index.ts -o dist --license licenses.txt",
+    "build:pr": "ncc build src/pr-action.ts -o dist/pr-action --license dist/pr-action/licenses.txt",
+    "build:release-notes": "ncc build src/release-notes-action.ts -o dist/release-notes-action --license dist/release-notes/licenses.txt",
+    "build": "npm run build:pr && npm run build:release-notes",
     "test": "jest --coverage",
     "prettier": "prettier --write .",
     "typecheck": "tsc --noEmit",
