@@ -188,7 +188,7 @@ generateReleaseNotes(
   github.getOctokit(process.env.GITHUB_TOKEN),
   "kaisunraj",
   "release-actions",
-  "ovp",
+  "tecsagroup",
   "main",
   "releases/v999.9.9",
 );
