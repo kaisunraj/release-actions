@@ -84,20 +84,23 @@ async function createRelease(
   tag: string,
   targetBranch: string,
 ) {
-  const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
-    owner,
-    repo,
-    tag_name: tag,
-    target_commitish: targetBranch,
-    name: tag,
-    body: "Description of the release",
-    draft: false,
-    prerelease: false,
-    generate_release_notes: false,
-    headers: {
-      "X-GitHub-Api-Version": "2026-03-10",
+  const response = await octokit.request(
+    "POST /repos/{owner}/{repo}/releases",
+    {
+      owner,
+      repo,
+      tag_name: tag,
+      target_commitish: targetBranch,
+      name: tag,
+      body: "Description of the release",
+      draft: false,
+      prerelease: false,
+      generate_release_notes: false,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
     },
-  });
+  );
   return response.data.id;
 }
 
@@ -123,7 +126,20 @@ async function updateRelease(
   });
 }
 
-async function generateReleaseNotes(baseBranch: string, targetBranch: string) {
+function generateReleaseNotesContent(links: string[]) {
+  if (links.length === 0) {
+    return "No Jira tickets found for this release.";
+  }
+  return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
+}
+
+async function generateReleaseNotes(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  baseBranch: string,
+  targetBranch: string,
+) {
   const releaseTag = getTagFromBranchName(targetBranch);
   if (!releaseTag) {
     throw new Error(
@@ -135,10 +151,29 @@ async function generateReleaseNotes(baseBranch: string, targetBranch: string) {
   console.log("Jira Tickets:", tickets);
   const links = generateJiraLinks(tickets);
   console.log("Jira Links:", links);
+  const releaseNotesContent = generateReleaseNotesContent(links);
+  console.log("Release Notes Content:", releaseNotesContent);
+  const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
+  if (releaseExistsId) {
+    await updateRelease(octokit, releaseExistsId, releaseTag, baseBranch);
+    console.log(`Updated existing release with tag ${releaseTag}`);
+  } else {
+    await createRelease(octokit, owner, repo, releaseTag, targetBranch);
+    console.log(`Created new release with tag ${releaseTag}`);
+  }
 }
 
 export async function run() {
+  // const octokit = github.getOctokit(core.getInput("github-token"));
+  // const baseBranch = core.getInput("base-branch");
+  // const targetBranch = core.getInput("target-branch");
+  // const { owner, repo } = github.context.repo;
+  // await generateReleaseNotes(octokit, owner, repo, baseBranch, targetBranch);
 }
 
-run();
+export { 
+  getCommitMessages as _getCommitMessages,
+  generateReleaseNotesContent as _generateReleaseNotesContent 
+};
 
+run();

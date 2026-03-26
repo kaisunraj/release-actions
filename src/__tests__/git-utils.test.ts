@@ -41,14 +41,25 @@ test("getLatestReleaseTag returns the latest release tag", async () => {
   expect(latestTag).toBe("releases/v1.2.1");
 });
 
-test("getTagFromBranchName extracts the tag from a branch name", () => {
-  const tag = getTagFromBranchName("releases/v1.2.1");
-  expect(tag).toBe("v1.2.1");
+
+describe("getTagFromBranchName extracts the tag from a branch name", () => {
+  it.each([
+    ["releases/v1.2.1", "v1.2.1"],
+    ["releases/v2.0.0", "v2.0.0"],
+  ])("returns the correct tag for branch name '%s'", (branchName, expectedTag) => {
+    const tag = getTagFromBranchName(branchName);
+    expect(tag).toBe(expectedTag);
+  });
 });
 
-test("getTagFromBranchName returns null for non-matching branch names", () => {
-  expect(getTagFromBranchName("main")).toBeNull();
-  expect(getTagFromBranchName("develop")).toBeNull();
-  expect(getTagFromBranchName("releases/v1.2")).toBeNull();
-  expect(getTagFromBranchName("releases/v1.2.1-beta")).toBeNull();
+
+describe("getTagFromBranchName returns null for non-matching branch names", () => {
+  it.each([
+    "main",
+    "develop",
+    "releases/v1.2",
+    "releases/v1.2.1-beta",
+  ])("returns null for branch name '%s'", (branchName) => {
+    expect(getTagFromBranchName(branchName)).toBeNull();
+  });
 });
