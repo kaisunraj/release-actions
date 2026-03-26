@@ -1,4 +1,95 @@
-import { _generateReleaseNotesContent } from "../create-release-notes";
+jest.mock("node:child_process", () => ({
+    exec: jest.fn(),
+}));
+
+const { exec: mockExec } = jest.requireMock("node:child_process") as {
+    exec: jest.Mock;
+};
+
+import { _createRelease, _filterJiraTickets, _generateJiraLinks, _generateReleaseNotes, _generateReleaseNotesContent, _getCommitMessages, _releaseExists } from "../create-release-notes";
+
+test("Getting commit messages", () => {
+    const commitMessages = [
+        "feat: add new feature OVP-1234",
+        "fix: bug fix OVP-5678",
+        "chore: update dependencies",
+        "refactor: improve code structure OVP-9012",
+        "docs: update README OVP-3456",
+    ];
+    mockExec.mockImplementation((command, callback) => {
+        callback(null, commitMessages.join("\n"), "");
+    });
+    const result = _getCommitMessages("main", "releases/v1.0.0");
+    return expect(result).resolves.toEqual(commitMessages);
+});
+
+
+test("Getting commit messages with error", () => {
+    mockExec.mockImplementation((command, callback) => {
+        callback(new Error("Git error"), "", "Git error");
+    });
+    const result = _getCommitMessages("main", "releases/v1.0.0");
+    return expect(result).rejects.toThrow("Error fetching commit messages: Git error");
+});
+
+test("Getting commit messages with stderr", () => {
+    mockExec.mockImplementation((command, callback) => {
+        callback(null, "", "Git error");
+    });
+    const result = _getCommitMessages("main", "releases/v1.0.0");
+    return expect(result).rejects.toThrow("Error output: Git error");
+});
+
+test("Filtering Jira tickets from commit messages", () => {
+    const commitMessages = [
+        "feat: add new feature OVP-1234",
+        "fix: bug fix OVP-5678",
+        "chore: update dependencies",
+        "refactor: improve code structure OVP-9012",
+        "docs: update README OVP-3456",
+    ];
+    const expectedTickets = ["OVP-1234", "OVP-5678", "OVP-9012", "OVP-3456"];
+    const result = _filterJiraTickets(commitMessages);
+    expect(result).toEqual(expectedTickets);
+});
+
+test("Gnerating jira links from tickets", () => {
+    const tickets = ["OVP-1234", "OVP-5678"];
+    const confluenceSpace = "example";
+    const expectedLinks = [
+        "https://example.atlassian.net/browse/OVP-1234",
+        "https://example.atlassian.net/browse/OVP-5678",
+    ];
+    const result = _generateJiraLinks(confluenceSpace, tickets);
+    expect(result).toEqual(expectedLinks);  
+}); 
+
+test("Test release exists returns false when release does not exist", async () => {
+    const mockOctokit = {
+        request: jest.fn().mockRejectedValue({ status: 404 }),
+    };
+    const result = await _releaseExists(mockOctokit as any, "owner", "repo", "tag");
+    expect(result).toBe(false);
+});
+
+
+test("Test release exists returns id when release exists", async () => {
+    const mockOctokit = {
+        request: jest.fn().mockResolvedValue({ data: { id: 123 } }),
+    };
+    const result = await _releaseExists(mockOctokit as any, "owner", "repo", "tag");
+    expect(result).toBe(123);
+});
+
+
+test("Test create release returns id", async () => {
+    const mockOctokit = {
+        request: jest.fn().mockResolvedValue({ data: { id: 456 } }),
+    };
+    const result = await _createRelease(mockOctokit as any, "owner", "repo", "tag", "releaseBranch", "body");
+    expect(result).toBe(456);
+});
+
 
 test("Testing generateReleaseNotesContent with no links", () => {
   const content = _generateReleaseNotesContent([]);
@@ -17,3 +108,57 @@ test("Testing generateReleaseNotesContent with multiple links", () => {
     );
 });
 
+test("Testing generateReleaseNotes release exists", async () => {
+    mockExec.mockImplementation((command, callback) => {
+        callback(null, "OVP-1: one\nOVP-2: two\n", "");
+    });
+    const mockOctokit = {
+        request: jest.fn()
+            .mockResolvedValueOnce({ data: { id: 123 } }) // releaseExists
+            .mockResolvedValueOnce({ data: { id: 123 } }), // updateRelease
+    };
+    return expect(_generateReleaseNotes(
+        mockOctokit as any,
+        "owner",
+        "repo",
+        "confluenceSpace",
+        "main",
+        "releases/v1.0.0",
+    )).resolves.toBe("v1.0.0");
+});
+
+test("Testing generateReleaseNotes release does not exist", async () => {
+    mockExec.mockImplementation((command, callback) => {
+        callback(null, "OVP-1: one\nOVP-2: two\n", "");
+    });
+    const mockOctokit = {
+        request: jest.fn()
+            .mockRejectedValueOnce({ status: 404 }) // releaseExists
+            .mockResolvedValueOnce({ data: { id: 456 } }), // createRelease
+    };
+    return expect(_generateReleaseNotes(
+        mockOctokit as any,
+        "owner",
+        "repo",
+        "confluenceSpace",
+        "main",
+        "releases/v1.0.0",
+    )).resolves.toBe("v1.0.0");
+});
+
+test("Testing generateReleaseNotes with no Jira tickets", async () => {
+    mockExec.mockImplementation((command, callback) => {
+        callback(null, "chore: update dependencies\n", "");
+    });
+    const mockOctokit = {
+        request: jest.fn()
+    };
+    return expect(_generateReleaseNotes(
+        mockOctokit as any,
+        "owner",
+        "repo",
+        "confluenceSpace",
+        "main",
+        "releases/v1.0.0",
+    )).resolves.toBeUndefined();
+});

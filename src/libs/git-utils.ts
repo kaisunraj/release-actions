@@ -45,10 +45,15 @@ export async function getLatestReleaseTag(
  * Extracts the version tag from a branch name like "releases/v1.2.3"
  * Returns null if the branch name doesn't match the expected pattern
  */
-export function getTagFromBranchName(branchName: string): string {
-  const match = branchName.match(/^releases\/(v\d+\.\d+\.\d+)$/);
+export function getTagFromBranchName(
+  branchName: string,
+  pattern: RegExp = /^releases\/(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/,
+): string {
+  const match = branchName.match(pattern);
   if (!match) {
-    throw new Error(`Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`);
+    throw new Error(
+      `Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`,
+    );
   }
   return match[1];
 }

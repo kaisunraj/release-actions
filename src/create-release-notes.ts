@@ -144,10 +144,14 @@ async function generateReleaseNotes(
   confluenceSpace: string,
   baseBranch: string,
   releaseBranch: string,
-) {
+) : Promise<string | undefined> {
   const releaseTag = getTagFromBranchName(releaseBranch);
   const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
   const tickets = filterJiraTickets(commitMessages);
+  if (tickets.length === 0) {
+    core.info("No commits found between base branch and release branch.");
+    return;
+  }
   console.log("Jira Tickets:", tickets);
   const links = generateJiraLinks(confluenceSpace, tickets);
   console.log("Jira Links:", links);
@@ -161,6 +165,7 @@ async function generateReleaseNotes(
     const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
     console.log(`Created new release with tag ${releaseTag} and id ${id}`);
   }
+  return releaseTag;
 }
 
 export async function run() {
@@ -184,15 +189,8 @@ export {
   filterJiraTickets as _filterJiraTickets,
   generateJiraLinks as _generateJiraLinks,
   releaseExists as _releaseExists,
+  createRelease as _createRelease,
   Octokit as _Octokit,
   generateReleaseNotesContent as _generateReleaseNotesContent,
+  generateReleaseNotes as _generateReleaseNotes,
 };
-
-generateReleaseNotes(
-  github.getOctokit(process.env.GITHUB_TOKEN),
-  "kaisunraj",
-  "release-actions",
-  "testspace",
-  "main",
-  "releases/v1.8.6",
-);

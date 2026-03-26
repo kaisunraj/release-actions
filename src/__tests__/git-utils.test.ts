@@ -46,6 +46,8 @@ describe("getTagFromBranchName extracts the tag from a branch name", () => {
   it.each([
     ["releases/v1.2.1", "v1.2.1"],
     ["releases/v2.0.0", "v2.0.0"],
+    ["releases/v1.2.3-beta", "v1.2.3-beta"],
+    ["releases/v1", "v1"]
   ])("returns the correct tag for branch name '%s'", (branchName, expectedTag) => {
     const tag = getTagFromBranchName(branchName);
     expect(tag).toBe(expectedTag);
@@ -57,9 +59,10 @@ describe("getTagFromBranchName returns null for non-matching branch names", () =
   it.each([
     "main",
     "develop",
-    "releases/v1.2",
-    "releases/v1.2.1-beta",
+    "feature/OVP-1234"
   ])("returns null for branch name '%s'", (branchName) => {
-    expect(getTagFromBranchName(branchName)).toBeNull();
+    expect(() => getTagFromBranchName(branchName)).toThrow(
+      `Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`,
+    );
   });
 });
