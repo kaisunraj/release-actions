@@ -83,6 +83,7 @@ async function createRelease(
   repo: string,
   tag: string,
   releaseBranch: string,
+  body: string
 ) {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
@@ -92,7 +93,7 @@ async function createRelease(
       tag_name: tag,
       target_commitish: releaseBranch,
       name: tag,
-      body: "Description of the release",
+      body: body,
       draft: false,
       prerelease: false,
       generate_release_notes: false,
@@ -106,18 +107,21 @@ async function createRelease(
 
 async function updateRelease(
   octokit: Octokit,
+  owner: string,
+  repo: string,
   releaseId: number,
   tag: string,
   releaseBranch: string,
+  body: string
 ) {
   await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
-    owner: core.getInput("GITHUB_REPOSITORY_OWNER"),
-    repo: core.getInput("GITHUB_REPOSITORY_NAME"),
+    owner: owner,
+    repo: repo,
     release_id: releaseId,
     tag_name: tag,
     target_commitish: releaseBranch,
     name: tag,
-    body: "Description of the release",
+    body: body,
     draft: false,
     prerelease: false,
     headers: {
@@ -151,10 +155,10 @@ async function generateReleaseNotes(
   console.log("Release Notes Content:", releaseNotesContent);
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
-    await updateRelease(octokit, releaseExistsId, releaseTag, baseBranch);
+    await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, baseBranch, releaseNotesContent);
     console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
   } else {
-    const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch);
+    const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
     console.log(`Created new release with tag ${releaseTag} and id ${id}`);
   }
 }
@@ -188,7 +192,7 @@ generateReleaseNotes(
   github.getOctokit(process.env.GITHUB_TOKEN),
   "kaisunraj",
   "release-actions",
-  "ovp",
+  "testspace",
   "main",
-  "releases/v999.9.9",
+  "releases/v1.8.6",
 );
