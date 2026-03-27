@@ -5,6 +5,21 @@ import { getTagFromBranchName } from "./libs/git-utils";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
+function listBranches() { 
+  exec("git branch -a", (error: Error | null, stdout: string, stderr: string) => {
+    if (error) {
+      console.error(`Error listing branches: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Error output: ${stderr}`);
+      return;
+    }
+    const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
+    console.log("Branches:", branches);
+  });
+}
+
 function getCommitMessages(
   baseBranch: string,
   releaseBranch: string,
@@ -146,6 +161,7 @@ async function generateReleaseNotes(
   releaseBranch: string,
 ) : Promise<string | undefined> {
   const releaseTag = getTagFromBranchName(releaseBranch);
+  listBranches();
   const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
   const tickets = filterJiraTickets(commitMessages);
   if (tickets.length === 0) {
