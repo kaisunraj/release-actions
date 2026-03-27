@@ -25,4 +25,4 @@ inputs:
 
 runs:
   using: 'node24'
-  main: 'dist/release-notes-action/index.js'
+  main: '../dist/release-notes-action/index.js'

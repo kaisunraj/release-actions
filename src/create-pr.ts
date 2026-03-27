@@ -24,7 +24,7 @@ async function checkExistingPr(
 
   if (existingPRs.length > 0) {
     const existing = existingPRs[0];
-    core.setFailed(
+    core.info(
       `An open PR from '${targetBranch}' into '${baseBranch}' already exists: ${existing.html_url}`,
     );
   }
