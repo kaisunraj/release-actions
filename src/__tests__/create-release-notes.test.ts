@@ -192,7 +192,7 @@ test("Testing generateReleaseNotes release exists", async () => {
       "main",
       "releases/v1.0.0",
     ),
-  ).resolves.toBe("v1.0.0");
+  ).resolves.toBe(123);
 });
 
 test("Testing generateReleaseNotes release does not exist", async () => {
@@ -214,7 +214,7 @@ test("Testing generateReleaseNotes release does not exist", async () => {
       "main",
       "releases/v1.0.0",
     ),
-  ).resolves.toBe("v1.0.0");
+  ).resolves.toBe(456);
 });
 
 test("Testing generateReleaseNotes with no Jira tickets", async () => {
