@@ -1,0 +1,15 @@
+name: Test Create PR
+
+on:
+    workflow_dispatch:
+
+jobs:
+  test-create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run create-pr action
+        uses: ./create-pr
+        with:
+          base-branch: "main"
+          target-branch: "releases/v1.8.6"
