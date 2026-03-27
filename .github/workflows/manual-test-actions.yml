@@ -19,7 +19,8 @@ jobs:
     outputs:
       pull-request-url: ${{ steps.create_pr.outputs.pull-request-url }}
       pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
-      release-branch: ${{ env.RELEASE_BRANCH }}
+      release-id: ${{ steps.create_release_notes.outputs.release-id }}
+      release-branch: ${{ steps.generate_branch_name.outputs.release-branch }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -29,42 +30,36 @@ jobs:
         id: generate_branch_name
         run: |
           export RELEASE_BRANCH="releases/v$(date +%s)"
-          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+          echo "release-branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
       
       - name: Create files and commits
         run: |
-          git checkout -b ${{ env.RELEASE_BRANCH }} 
+          git checkout -b ${{ steps.generate_branch_name.outputs.release-branch }}
           git config user.name "Test User"
           git config user.email "testuser@example.com"
           echo "dummy content" > OVP1234.txt
           git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing"
           echo "dummy content" > OVP5678.txt
           git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
-          git push origin HEAD:${{ env.RELEASE_BRANCH }}
+          git push origin HEAD:${{ steps.generate_branch_name.outputs.release-branch }}
           
       - name: Run create-pr action
         id: create_pr
         uses: ./create-pr
         with:
           base-branch: "main"
-          target-branch: ${{ env.RELEASE_BRANCH }}
+          target-branch: ${{ steps.generate_branch_name.outputs.release-branch }}
           github-token: ${{ secrets.PAT }}
 
       - name: Run create-release-notes action
+        id: create_release_notes
         uses: ./create-release-notes
         with:
           base-branch: "origin/main"
-          release-branch: "origin/${{ env.RELEASE_BRANCH }}"
+          release-branch: "origin/${{ steps.generate_branch_name.outputs.release-branch }}"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
 
-      - name: Set output variables for teardown
-        id: set_outputs
-        run: |
-          echo "pull-request-url=${{ steps.create_pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
-          echo "pull-request-number=${{ steps.create_pr.outputs.pull-request-number }}" >> $GITHUB_OUTPUT
-          echo "release-branch=${{ env.RELEASE_BRANCH }}" >> $GITHUB_OUTPUT
-    
   teardown:
     runs-on: ubuntu-latest
     needs: manual-tests
@@ -85,9 +80,11 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/${{ needs.manual-tests.outputs.release-branch }}
 
-      - name: Delete release tag
+      - name: Delete release
         run: |
-          curl -X DELETE \
-            -H "Authorization: token ${{ secrets.PAT }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/tags/${{ needs.manual-tests.outputs.release-branch }}
+          curl -L \
+            -X DELETE \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.PAT }}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/releases/${{ needs.manual-tests.outputs.release-id }}

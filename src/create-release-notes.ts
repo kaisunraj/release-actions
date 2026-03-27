@@ -160,7 +160,7 @@ async function generateReleaseNotes(
   confluenceSpace: string,
   baseBranch: string,
   releaseBranch: string,
-) : Promise<string | undefined> {
+) : Promise<number | undefined> {
   const releaseTag = getTagFromBranchName(releaseBranch);
   listBranches();
   const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
@@ -178,11 +178,12 @@ async function generateReleaseNotes(
   if (releaseExistsId) {
     await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
     console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
+    return releaseExistsId;
   } else {
-    const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
-    console.log(`Created new release with tag ${releaseTag} and id ${id}`);
+    const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
+    console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
+    return releaseId;
   }
-  return releaseTag;
 }
 
 export async function run() {
@@ -191,7 +192,7 @@ export async function run() {
   const releaseBranch = core.getInput("release-branch");
   const confluenceSpace = core.getInput("confluence-space");
   const { owner, repo } = github.context.repo;
-  await generateReleaseNotes(
+  const releaseId = await generateReleaseNotes(
     octokit,
     owner,
     repo,
@@ -199,6 +200,7 @@ export async function run() {
     baseBranch,
     releaseBranch,
   );
+  core.setOutput("release-id", releaseId ?? "");
 }
 
 export {
