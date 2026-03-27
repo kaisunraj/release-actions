@@ -18,5 +18,5 @@ outputs:
     description: "The URL of the created pull request"
 
 runs:
-  using: "node20"
+  using: "node24"
   main: "../dist/pr-action/index.js"
