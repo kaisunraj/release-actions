@@ -20,7 +20,7 @@ inputs:
     description: 'The branch to merge from (e.g. release/1.2.3)'
     required: true
   confluence-space:
-    description: 'The Confluence space key to generate JIRA ticket links
+    description: 'The Confluence space key to generate JIRA ticket links'
     required: true
 
 runs:
