@@ -49,6 +49,11 @@ jobs:
           approvers: kaisunraj
           minimum-approvals: 1
     
+  teardown:
+    runs-on: ubuntu-latest
+    needs: manual-tests
+    environment: manual-testing
+    steps:
       - name: Close created PR
         run: |
           curl -X PATCH \
