@@ -32191,7 +32191,7 @@ async function run() {
     // 2. Check for an existing open PR from target into base
     const existingPrUrl = await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
     if (existingPrUrl) {
-        core.info(`Existing pull request found: ${existingPrUrl}`);
+        core.notice(`Existing pull request found: ${existingPrUrl}`);
         return;
     }
     // 3. Create the pull request

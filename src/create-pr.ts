@@ -84,7 +84,7 @@ async function run(): Promise<void> {
     baseBranch,
   );
   if (existingPrUrl) {
-    core.info(`Existing pull request found: ${existingPrUrl}`);
+    core.notice(`Existing pull request found: ${existingPrUrl}`);
     return;
   }
 
