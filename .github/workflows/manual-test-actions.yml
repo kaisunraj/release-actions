@@ -1,35 +1,66 @@
 name: Test Create PR and Create Release Notes Actions
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  test-create-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Run create-pr action
-        uses: ./create-pr
-        with:
-          base-branch: "main"
-          target-branch: "releases/v1.8.6"
-          github-token: ${{ secrets.PAT }}
-    
-  test-create-release-notes:
+  manual-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Fetch all history for all branches and tags
 
+      - uses: actions/checkout@v6
+        with:
+          ref: "releases/v9.9.9"
+      
+      - name: Create files and commits
+        run: |
+          echo "dummy content" > OVP1234.txt
+          git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing
+          echo "dummy content" > OVP5678.txt
+          git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
+          git push origin HEAD:releases/v9.9.9
+          
+      - name: Run create-pr action
+        id: create_pr
+        uses: ./create-pr
+        with:
+          base-branch: "main"
+          target-branch: "releases/v9.9.9"
+          github-token: ${{ secrets.PAT }}
+
       - name: Run create-release-notes action
         uses: ./create-release-notes
         with:
           base-branch: "origin/main"
-          release-branch: "origin/releases/v1.8.6"
+          release-branch: "origin/releases/v9.9.9"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
+        
+      - name: Wait for approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: kaisunraj
+          minimum-approvals: 1
+    
+      - name: Close created PR
+        run: |
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls/${{ steps.create_pr.outputs.pull-request-number }} \
+            -d '{"state": "closed"}'
+
+      - name: Delete release
+        run: |
+          curl -X DELETE \
+            -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/releases/v9.9.9

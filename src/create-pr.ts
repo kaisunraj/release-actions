@@ -43,7 +43,7 @@ async function createPullRequest(
   targetBranch: string,
   owner: string,
   repo: string,
-): Promise<string> {
+): Promise<{ prNumber: number; html_url: string }> {
   console.log(
     `Creating pull request from '${targetBranch}' into '${baseBranch}' with title '${prTitle}'...`,
   );
@@ -54,7 +54,7 @@ async function createPullRequest(
     base: baseBranch,
     title: prTitle,
   });
-  return pr.html_url;
+  return { prNumber: pr.number, html_url: pr.html_url };
 }
 
 /**
@@ -91,7 +91,7 @@ async function run(): Promise<void> {
   // 3. Create the pull request
   const prTitle = `Main into Develop for Release ${releaseTag}`;
 
-  const prUrl = await createPullRequest(
+  const { prNumber, html_url } = await createPullRequest(
     octokit,
     prTitle,
     baseBranch,
@@ -100,8 +100,9 @@ async function run(): Promise<void> {
     repo,
   );
 
-  core.info(`Pull request created: ${prUrl}`);
-  core.setOutput("pull-request-url", prUrl);
+  core.info(`Pull request #${prNumber} created: ${html_url}`);
+  core.setOutput("pull-request-url", html_url);
+  core.setOutput("pull-request-number", prNumber);
 }
 
 export {
