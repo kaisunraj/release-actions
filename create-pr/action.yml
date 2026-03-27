@@ -19,4 +19,4 @@ outputs:
 
 runs:
   using: "node20"
-  main: "dist/pr-action/index.js"
+  main: "../dist/pr-action/index.js"

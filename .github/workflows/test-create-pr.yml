@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run create-pr action
-        uses: ./create-pr
+        uses: ./.create-pr
         with:
           base-branch: "main"
           target-branch: "releases/v1.8.6"
