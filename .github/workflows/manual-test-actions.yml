@@ -26,6 +26,6 @@ jobs:
       - name: Run create-release-notes action
         uses: ./create-release-notes
         with:
-          base-branch: "main"
-          release-branch: "releases/v1.8.6"
+          base-branch: "origin/main"
+          release-branch: "origin/releases/v1.8.6"
           confluence-space: "kaisunraj"
