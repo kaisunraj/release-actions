@@ -32317,6 +32317,7 @@ const core = __importStar(__nccwpck_require__(7484));
  * and returning the one with the highest version number
  */
 async function getLatestReleaseTag(octokit, owner, repo) {
+    console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
     const branches = await octokit.request("GET /repos/{owner}/{repo}/branches", {
         owner,
         repo,
@@ -32338,13 +32339,17 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     return releaseTag;
 }
 /**
- * Extracts the version tag from a branch name like "releases/v1.2.3"
- * Returns null if the branch name doesn't match the expected pattern
+ * Extracts the version tag from a branch name.
+ * Supports formats:
+ *   - releases/v1.2.3
+ *   - origin/release/v1.2.3
+ *   - release/v1.2.3
  */
-function getTagFromBranchName(branchName, pattern = /^releases\/(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
+function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
+    console.log(`Extracting tag from branch name: ${branchName}`);
     const match = branchName.match(pattern);
     if (!match) {
-        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`);
+        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/release/v1.2.3)`);
     }
     return match[1];
 }

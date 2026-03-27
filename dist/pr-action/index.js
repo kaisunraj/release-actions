@@ -32144,22 +32144,26 @@ const git_utils_1 = __nccwpck_require__(3824);
  * If there is, it fails the action with an error message containing the PR URL
  */
 async function checkExistingPr(octokit, owner, repo, targetBranch, baseBranch) {
+    console.log(`Checking for existing open PRs from '${targetBranch}' into '${baseBranch}'...`);
     const { data: existingPRs } = await octokit.rest.pulls.list({
         owner,
         repo,
         state: "open",
-        head: `${owner}:${targetBranch}`,
+        head: targetBranch,
         base: baseBranch,
     });
     if (existingPRs.length > 0) {
         const existing = existingPRs[0];
-        core.setFailed(`An open PR from '${targetBranch}' into '${baseBranch}' already exists: ${existing.html_url}`);
+        console.log(`Existing PR found: ${existing.html_url}`);
+        return existing.html_url;
     }
+    return;
 }
 /**
  * Creates a pull request and returns the PR URL
  */
 async function createPullRequest(octokit, prTitle, baseBranch, targetBranch, owner, repo) {
+    console.log(`Creating pull request from '${targetBranch}' into '${baseBranch}' with title '${prTitle}'...`);
     const { data: pr } = await octokit.rest.pulls.create({
         owner,
         repo,
@@ -32185,7 +32189,11 @@ async function run() {
     }
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
     // 2. Check for an existing open PR from target into base
-    await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
+    const existingPrUrl = await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
+    if (existingPrUrl) {
+        core.info(`Existing pull request found: ${existingPrUrl}`);
+        return;
+    }
     // 3. Create the pull request
     const prTitle = `Main into Develop for Release ${releaseTag}`;
     const prUrl = await createPullRequest(octokit, prTitle, baseBranch, targetBranch, owner, repo);
@@ -32243,6 +32251,7 @@ const core = __importStar(__nccwpck_require__(7484));
  * and returning the one with the highest version number
  */
 async function getLatestReleaseTag(octokit, owner, repo) {
+    console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
     const branches = await octokit.request("GET /repos/{owner}/{repo}/branches", {
         owner,
         repo,
@@ -32264,13 +32273,17 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     return releaseTag;
 }
 /**
- * Extracts the version tag from a branch name like "releases/v1.2.3"
- * Returns null if the branch name doesn't match the expected pattern
+ * Extracts the version tag from a branch name.
+ * Supports formats:
+ *   - releases/v1.2.3
+ *   - origin/release/v1.2.3
+ *   - release/v1.2.3
  */
-function getTagFromBranchName(branchName, pattern = /^releases\/(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
+function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
+    console.log(`Extracting tag from branch name: ${branchName}`);
     const match = branchName.match(pattern);
     if (!match) {
-        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`);
+        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/release/v1.2.3)`);
     }
     return match[1];
 }

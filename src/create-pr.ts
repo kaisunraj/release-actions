@@ -14,7 +14,9 @@ async function checkExistingPr(
   targetBranch: string,
   baseBranch: string,
 ): Promise<string | void> {
-  console.log(`Checking for existing open PRs from '${targetBranch}' into '${baseBranch}'...`);
+  console.log(
+    `Checking for existing open PRs from '${targetBranch}' into '${baseBranch}'...`,
+  );
   const { data: existingPRs } = await octokit.rest.pulls.list({
     owner,
     repo,
@@ -42,7 +44,9 @@ async function createPullRequest(
   owner: string,
   repo: string,
 ): Promise<string> {
-  console.log(`Creating pull request from '${targetBranch}' into '${baseBranch}' with title '${prTitle}'...`);
+  console.log(
+    `Creating pull request from '${targetBranch}' into '${baseBranch}' with title '${prTitle}'...`,
+  );
   const { data: pr } = await octokit.rest.pulls.create({
     owner,
     repo,
@@ -72,7 +76,13 @@ async function run(): Promise<void> {
   const releaseTag = getTagFromBranchName(releaseBranch);
 
   // 2. Check for an existing open PR from target into base
-  const existingPrUrl = await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
+  const existingPrUrl = await checkExistingPr(
+    octokit,
+    owner,
+    repo,
+    targetBranch,
+    baseBranch,
+  );
   if (existingPrUrl) {
     core.info(`Existing pull request found: ${existingPrUrl}`);
     return;
