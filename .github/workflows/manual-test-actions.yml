@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: releases/v9.9.9
           fetch-depth: 0 # Fetch all history for all branches and tags
       
       - name: Create files and commits
         run: |
+          git checkout -b releases/v9.9.9
           echo "dummy content" > OVP1234.txt
           git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing
           echo "dummy content" > OVP5678.txt
