@@ -2,6 +2,12 @@ name: Test Create PR and Create Release Notes Actions
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '**/action.yml'
 
 permissions:
   contents: write
@@ -14,31 +20,35 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Generate a unique release branch name
+        id: generate_branch_name
+        run: echo "RELEASE_BRANCH=releases/v$(date +%s)" >> $GITHUB_ENV
       
       - name: Create files and commits
         run: |
-          git checkout -b releases/v9.9.9 
+          git checkout -b ${{ env.RELEASE_BRANCH }} 
           git config user.name "Test User"
           git config user.email "testuser@example.com"
           echo "dummy content" > OVP1234.txt
           git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing"
           echo "dummy content" > OVP5678.txt
           git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
-          git push origin HEAD:releases/v9.9.9
+          git push origin HEAD:${{ env.RELEASE_BRANCH }}
           
       - name: Run create-pr action
         id: create_pr
         uses: ./create-pr
         with:
           base-branch: "main"
-          target-branch: "releases/v9.9.9"
+          target-branch: ${{ env.RELEASE_BRANCH }}
           github-token: ${{ secrets.PAT }}
 
       - name: Run create-release-notes action
         uses: ./create-release-notes
         with:
           base-branch: "origin/main"
-          release-branch: "origin/releases/v9.9.9"
+          release-branch: "origin/${{ env.RELEASE_BRANCH }}"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
     
@@ -60,4 +70,4 @@ jobs:
           curl -X DELETE \
             -H "Authorization: token ${{ secrets.PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/releases/v9.9.9
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/${{ env.RELEASE_BRANCH }}
