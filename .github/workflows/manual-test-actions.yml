@@ -13,11 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: releases/v9.9.9
           fetch-depth: 0 # Fetch all history for all branches and tags
-
-      - uses: actions/checkout@v6
-        with:
-          ref: "releases/v9.9.9"
       
       - name: Create files and commits
         run: |
