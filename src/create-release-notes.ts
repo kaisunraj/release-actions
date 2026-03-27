@@ -175,7 +175,7 @@ async function generateReleaseNotes(
   console.log("Release Notes Content:", releaseNotesContent);
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
-    await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, baseBranch, releaseNotesContent);
+    await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
     console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
   } else {
     const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
