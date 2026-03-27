@@ -63,7 +63,7 @@ describe("getTagFromBranchName returns null for non-matching branch names", () =
     "feature/OVP-1234"
   ])("returns null for branch name '%s'", (branchName) => {
     expect(() => getTagFromBranchName(branchName)).toThrow(
-      `Branch name "${branchName}" does not match expected release branch pattern "releases/v*.*.*"`,
+      `Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`,
     );
   });
 });

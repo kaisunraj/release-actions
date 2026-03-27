@@ -80,14 +80,39 @@ test("run executes the full workflow successfully", async () => {
   });
 });
 
+test("Run does not create PR if one already exists", async () => {
+  (core.getInput as jest.Mock).mockImplementation((key: string) => {
+    const inputs: Record<string, string> = {
+      "github-token": "mock-token",
+      "base-branch": "main",
+      "target-branch": "develop",
+    };
+    return inputs[key] ?? "";
+  });
+
+  (github.context as any).repo = { owner: "owner", repo: "repo" };
+
+  mockOctokitBase.rest.pulls.list.mockResolvedValue({
+    data: [{ html_url: "https://github.com/owner/repo/pull/1" }],
+  });
+
+  await run();
+
+  expect(mockOctokitBase.rest.pulls.create).not.toHaveBeenCalled();
+});
+
 test("checkExistingPr fails when an open PR already exists", async () => {
   mockOctokitBase.rest.pulls.list.mockResolvedValue({
     data: [{ html_url: "https://github.com/owner/repo/pull/1" }],
   });
 
-  await _checkExistingPr(mockOctokitBase as any, "owner", "repo", "develop", "main");
+  const result = await _checkExistingPr(mockOctokitBase as any, "owner", "repo", "develop", "main");
+  expect(result).toBe("https://github.com/owner/repo/pull/1");
+});
 
-  expect(core.setFailed).toHaveBeenCalledWith(
-    "An open PR from 'develop' into 'main' already exists: https://github.com/owner/repo/pull/1",
-  );
+test("checkExistingPr returns null when no open PR exists", async () => {
+  mockOctokitBase.rest.pulls.list.mockResolvedValue({ data: [] });
+
+  const result = await _checkExistingPr(mockOctokitBase as any, "owner", "repo", "develop", "main");
+  expect(result).toBeUndefined();
 });

@@ -57,7 +57,7 @@ export function getTagFromBranchName(
   const match = branchName.match(pattern);
   if (!match) {
     throw new Error(
-      `Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/release/v1.2.3)`,
+      `Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`,
     );
   }
   return match[1];

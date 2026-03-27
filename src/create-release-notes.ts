@@ -5,18 +5,19 @@ import { getTagFromBranchName } from "./libs/git-utils";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
-function listBranches() { 
-  exec("git branch -a", (error: Error | null, stdout: string, stderr: string) => {
-    if (error) {
-      console.error(`Error listing branches: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Error output: ${stderr}`);
-      return;
-    }
-    const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
-    console.log("Branches:", branches);
+function listBranches(): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    exec("git branch -a", (error: Error | null, stdout: string, stderr: string) => {
+      if (error) {
+        return reject(new Error(`Error listing branches: ${error.message}`));
+      }
+      if (stderr) {
+        return reject(new Error(`Error output: ${stderr}`));
+      }
+      const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
+      console.log("Branches:", branches);
+      resolve(branches);
+    });
   });
 }
 
@@ -206,6 +207,7 @@ export {
   generateJiraLinks as _generateJiraLinks,
   releaseExists as _releaseExists,
   createRelease as _createRelease,
+  listBranches as _listBranches,
   Octokit as _Octokit,
   generateReleaseNotesContent as _generateReleaseNotesContent,
   generateReleaseNotes as _generateReleaseNotes,

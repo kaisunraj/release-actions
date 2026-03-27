@@ -1,3 +1,4 @@
+import { notice } from "@actions/core";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -11,4 +12,5 @@ module.exports = {
   setFailed: jest.fn(),
   info: jest.fn(),
   setOutput: jest.fn(),
+  notice: jest.fn(),
 };
