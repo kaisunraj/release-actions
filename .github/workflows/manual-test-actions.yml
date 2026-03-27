@@ -1,0 +1,31 @@
+name: Test Create PR and Create Release Notes Actions
+
+on:
+    workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test-create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run create-pr action
+        uses: ./create-pr
+        with:
+          base-branch: "main"
+          target-branch: "releases/v1.8.6"
+          github-token: ${{ secrets.PAT }}
+    
+  test-create-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run create-release-notes action
+        uses: ./create-release-notes
+        with:
+          base-branch: "main"
+          release-branch: "releases/v1.8.6"
+          confluence-space: "kaisunraj"
