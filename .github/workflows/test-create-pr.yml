@@ -11,7 +11,8 @@ jobs:
   test-create-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4      - name: Run create-pr action
+      - uses: actions/checkout@v6
+      - name: Run create-pr action
         uses: ./create-pr
         with:
           base-branch: "main"
