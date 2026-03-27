@@ -16,6 +16,10 @@ permissions:
 jobs:
   manual-tests:
     runs-on: ubuntu-latest
+    outputs:
+      pull-request-url: ${{ steps.create_pr.outputs.pull-request-url }}
+      pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+      release-branch: ${{ env.RELEASE_BRANCH }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -23,7 +27,9 @@ jobs:
 
       - name: Generate a unique release branch name
         id: generate_branch_name
-        run: echo "RELEASE_BRANCH=releases/v$(date +%s)" >> $GITHUB_ENV
+        run: |
+          export RELEASE_BRANCH="releases/v$(date +%s)"
+          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
       
       - name: Create files and commits
         run: |
@@ -51,6 +57,13 @@ jobs:
           release-branch: "origin/${{ env.RELEASE_BRANCH }}"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
+
+      - name: Set output variables for teardown
+        id: set_outputs
+        run: |
+          echo "pull-request-url=${{ steps.create_pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
+          echo "pull-request-number=${{ steps.create_pr.outputs.pull-request-number }}" >> $GITHUB_OUTPUT
+          echo "release-branch=${{ env.RELEASE_BRANCH }}" >> $GITHUB_OUTPUT
     
   teardown:
     runs-on: ubuntu-latest
@@ -62,12 +75,15 @@ jobs:
           curl -X PATCH \
             -H "Authorization: token ${{ secrets.PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls/${{ steps.create_pr.outputs.pull-request-number }} \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls/${{ needs.manual-tests.outputs.pull-request-number }} \
             -d '{"state": "closed"}'
+      
+      - name: Delete created branch
+        run: git branch -D ${{ needs.manual-tests.outputs.release-branch }} && git push origin --delete ${{ needs.manual-tests.outputs.release-branch }}
 
       - name: Delete release
         run: |
           curl -X DELETE \
             -H "Authorization: token ${{ secrets.PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/${{ env.RELEASE_BRANCH }}
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/${{ needs.manual-tests.outputs.release-branch }}
