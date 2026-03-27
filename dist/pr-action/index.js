@@ -32171,7 +32171,7 @@ async function createPullRequest(octokit, prTitle, baseBranch, targetBranch, own
         base: baseBranch,
         title: prTitle,
     });
-    return pr.html_url;
+    return { prNumber: pr.number, html_url: pr.html_url };
 }
 /**
  * Main function to run the action
@@ -32196,9 +32196,10 @@ async function run() {
     }
     // 3. Create the pull request
     const prTitle = `Main into Develop for Release ${releaseTag}`;
-    const prUrl = await createPullRequest(octokit, prTitle, baseBranch, targetBranch, owner, repo);
-    core.info(`Pull request created: ${prUrl}`);
-    core.setOutput("pull-request-url", prUrl);
+    const { prNumber, html_url } = await createPullRequest(octokit, prTitle, baseBranch, targetBranch, owner, repo);
+    core.info(`Pull request #${prNumber} created: ${html_url}`);
+    core.setOutput("pull-request-url", html_url);
+    core.setOutput("pull-request-number", prNumber);
 }
 
 
@@ -32283,7 +32284,7 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
     console.log(`Extracting tag from branch name: ${branchName}`);
     const match = branchName.match(pattern);
     if (!match) {
-        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/release/v1.2.3)`);
+        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
 }

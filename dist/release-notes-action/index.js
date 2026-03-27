@@ -32139,6 +32139,7 @@ exports._filterJiraTickets = filterJiraTickets;
 exports._generateJiraLinks = generateJiraLinks;
 exports._releaseExists = releaseExists;
 exports._createRelease = createRelease;
+exports._listBranches = listBranches;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
 exports._generateReleaseNotes = generateReleaseNotes;
 const core = __importStar(__nccwpck_require__(7484));
@@ -32146,17 +32147,18 @@ const github = __importStar(__nccwpck_require__(3228));
 const node_child_process_1 = __nccwpck_require__(1421);
 const git_utils_1 = __nccwpck_require__(3824);
 function listBranches() {
-    (0, node_child_process_1.exec)("git branch -a", (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error listing branches: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.error(`Error output: ${stderr}`);
-            return;
-        }
-        const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
-        console.log("Branches:", branches);
+    return new Promise((resolve, reject) => {
+        (0, node_child_process_1.exec)("git branch -a", (error, stdout, stderr) => {
+            if (error) {
+                return reject(new Error(`Error listing branches: ${error.message}`));
+            }
+            if (stderr) {
+                return reject(new Error(`Error output: ${stderr}`));
+            }
+            const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
+            console.log("Branches:", branches);
+            resolve(branches);
+        });
     });
 }
 function getCommitMessages(baseBranch, releaseBranch) {
@@ -32266,12 +32268,13 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     if (releaseExistsId) {
         await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
         console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
+        return releaseExistsId;
     }
     else {
-        const id = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
-        console.log(`Created new release with tag ${releaseTag} and id ${id}`);
+        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
+        console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
+        return releaseId;
     }
-    return releaseTag;
 }
 async function run() {
     const octokit = github.getOctokit(core.getInput("github-token"));
@@ -32279,7 +32282,8 @@ async function run() {
     const releaseBranch = core.getInput("release-branch");
     const confluenceSpace = core.getInput("confluence-space");
     const { owner, repo } = github.context.repo;
-    await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch);
+    const releaseId = await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch);
+    core.setOutput("release-id", releaseId ?? "");
 }
 
 
@@ -32364,7 +32368,7 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
     console.log(`Extracting tag from branch name: ${branchName}`);
     const match = branchName.match(pattern);
     if (!match) {
-        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/release/v1.2.3)`);
+        throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
 }
