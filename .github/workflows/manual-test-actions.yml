@@ -41,13 +41,6 @@ jobs:
           release-branch: "origin/releases/v9.9.9"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
-        
-      - name: Wait for approval
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ github.token }}
-          approvers: kaisunraj
-          minimum-approvals: 1
     
   teardown:
     runs-on: ubuntu-latest
