@@ -32145,6 +32145,20 @@ const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const node_child_process_1 = __nccwpck_require__(1421);
 const git_utils_1 = __nccwpck_require__(3824);
+function listBranches() {
+    (0, node_child_process_1.exec)("git branch -a", (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error listing branches: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`Error output: ${stderr}`);
+            return;
+        }
+        const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
+        console.log("Branches:", branches);
+    });
+}
 function getCommitMessages(baseBranch, releaseBranch) {
     return new Promise((resolve, reject) => {
         (0, node_child_process_1.exec)(`git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`, (error, stdout, stderr) => {
@@ -32236,6 +32250,7 @@ function generateReleaseNotesContent(links) {
 }
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch) {
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
+    listBranches();
     const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
     const tickets = filterJiraTickets(commitMessages);
     if (tickets.length === 0) {
