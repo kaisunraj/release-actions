@@ -10,6 +10,7 @@ export async function getLatestReleaseTag(
   owner: string,
   repo: string,
 ): Promise<string | undefined> {
+  console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
   const branches = await octokit.request("GET /repos/{owner}/{repo}/branches", {
     owner,
     repo,
@@ -52,6 +53,7 @@ export function getTagFromBranchName(
   branchName: string,
   pattern: RegExp = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/,
 ): string {
+  console.log(`Extracting tag from branch name: ${branchName}`);
   const match = branchName.match(pattern);
   if (!match) {
     throw new Error(
