@@ -79,11 +79,15 @@ jobs:
             -d '{"state": "closed"}'
       
       - name: Delete created branch
-        run: git branch -D ${{ needs.manual-tests.outputs.release-branch }} && git push origin --delete ${{ needs.manual-tests.outputs.release-branch }}
-
-      - name: Delete release
         run: |
           curl -X DELETE \
             -H "Authorization: token ${{ secrets.PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/heads/${{ needs.manual-tests.outputs.release-branch }}
+
+      - name: Delete release tag
+        run: |
+          curl -X DELETE \
+            -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/git/refs/tags/${{ needs.manual-tests.outputs.release-branch }}
