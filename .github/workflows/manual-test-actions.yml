@@ -32,3 +32,4 @@ jobs:
           base-branch: "origin/main"
           release-branch: "origin/releases/v1.8.6"
           confluence-space: "kaisunraj"
+          github-token: ${{ secrets.PAT }}
