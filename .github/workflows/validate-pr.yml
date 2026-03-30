@@ -20,10 +20,12 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const mandatoryLabels = ["major", "minor", "patch"];
             const labels = context.payload.pull_request?.labels || [];
+            const hasMandatoryLabel = labels.some(label => mandatoryLabels.includes(label.name));
 
-            if (labels.length === 0) {
-                core.setFailed("PR must have at least one label.");
+            if (!hasMandatoryLabel) {
+                core.setFailed("PR must have at least one mandatory label: major, minor, or patch.");
                 return;
             }
 
