@@ -21,6 +21,10 @@ inputs:
   confluence-space:
     description: "The Confluence space key to generate JIRA ticket links"
     required: true
+  generate-github-release:
+    description: "Whether to create a GitHub release with the generated notes (true/false)"
+    required: false
+    default: "false"
 
 runs:
   using: "node24"

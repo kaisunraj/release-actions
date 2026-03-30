@@ -3,12 +3,12 @@ name: Validate PR Labels
 on:
   pull_request:
     types:
-        - opened
-        - reopened
-        - synchronize
-        - labeled
-        - unlabeled
-        - ready_for_review
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+      - ready_for_review
 
 jobs:
   require-at-least-one-label:
@@ -30,3 +30,16 @@ jobs:
             }
 
             core.info(`PR has ${labels.length} label(s): ${labels.map(l => l.name).join(", ")}`);
+      
+  run-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test

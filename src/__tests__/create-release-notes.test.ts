@@ -6,7 +6,10 @@ const { exec: mockExec } = jest.requireMock("node:child_process") as {
   exec: jest.Mock;
 };
 
+import * as core from "@actions/core";
+
 import {
+  _createGithubRelease,
   _createRelease,
   _filterJiraTickets,
   _generateJiraLinks,
@@ -173,6 +176,39 @@ test("Testing generateReleaseNotesContent with multiple links", () => {
   );
 });
 
+test("createGithubRelease when release exists", async () => {
+  const mockOctokit = {
+    request: jest.fn().mockResolvedValue({ data: { id: 789 } }),
+  };
+  const result = await _createGithubRelease(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    "v1.0.0",
+    "releases/v1.0.0",
+    "Release notes content",
+  );
+  expect(result).toBe(789);
+});
+
+test("createGithubRelease when release does not exist", async () => {
+  const mockOctokit = {
+    request: jest
+      .fn()
+      .mockRejectedValueOnce({ status: 404 }) // release doesnt exist
+      .mockResolvedValueOnce({ data: { id: 123 } }), // createRelease
+  };
+  const result = await _createGithubRelease(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    "v1.0.0",
+    "releases/v1.0.0",
+    "Release notes content",
+  );
+  expect(result).toBe(123);
+});
+
 test("Testing generateReleaseNotes release exists", async () => {
   mockExec.mockImplementation((command, callback) => {
     callback(null, "OVP-1: one\nOVP-2: two\n", "");
@@ -234,4 +270,24 @@ test("Testing generateReleaseNotes with no Jira tickets", async () => {
       "releases/v1.0.0",
     ),
   ).resolves.toBeUndefined();
+});
+
+test("Generate release notes with createGithubReleaseTag false does not call createGithubRelease", async () => {
+  mockExec.mockImplementation((command, callback) => {
+    callback(null, "OVP-1: one\nOVP-2: two\n", "");
+  });
+  const mockOctokit = {
+    request: jest.fn(),
+  };
+  const result = await _generateReleaseNotes(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    "confluenceSpace",
+    "main",
+    "releases/v1.0.0",
+    false, // createGithubReleaseTag
+  );
+  expect(mockOctokit.request).not.toHaveBeenCalled();
+  expect(core.notice).toHaveBeenCalled();
 });

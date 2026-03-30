@@ -159,27 +159,14 @@ function generateReleaseNotesContent(links: string[]) {
   return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
 
-async function generateReleaseNotes(
+async function createGithubRelease(
   octokit: Octokit,
   owner: string,
   repo: string,
-  confluenceSpace: string,
-  baseBranch: string,
+  releaseTag: string,
   releaseBranch: string,
-): Promise<number | undefined> {
-  const releaseTag = getTagFromBranchName(releaseBranch);
-  listBranches();
-  const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
-  const tickets = filterJiraTickets(commitMessages);
-  if (tickets.length === 0) {
-    core.info("No commits found between base branch and release branch.");
-    return;
-  }
-  console.log("Jira Tickets:", tickets);
-  const links = generateJiraLinks(confluenceSpace, tickets);
-  console.log("Jira Links:", links);
-  const releaseNotesContent = generateReleaseNotesContent(links);
-  console.log("Release Notes Content:", releaseNotesContent);
+  releaseNotesContent: string,
+): Promise<number> {
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
     await updateRelease(
@@ -211,11 +198,52 @@ async function generateReleaseNotes(
   }
 }
 
+async function generateReleaseNotes(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  confluenceSpace: string,
+  baseBranch: string,
+  releaseBranch: string,
+  createReleaseTag: boolean = true,
+): Promise<number | undefined> {
+  const releaseTag = getTagFromBranchName(releaseBranch);
+  listBranches();
+  const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
+  const tickets = filterJiraTickets(commitMessages);
+  if (tickets.length === 0) {
+    core.info("No commits found between base branch and release branch.");
+    return;
+  }
+  console.log("Jira Tickets:", tickets);
+  const links = generateJiraLinks(confluenceSpace, tickets);
+  console.log("Jira Links:", links);
+  const releaseNotesContent = generateReleaseNotesContent(links);
+  console.log("Release Notes Content:", releaseNotesContent);
+  if (createReleaseTag) {
+    return await createGithubRelease(
+      octokit,
+      owner,
+      repo,
+      releaseTag,
+      releaseBranch,
+      releaseNotesContent,
+    );
+  } else {
+    core.notice(
+      `Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`,
+    );
+    return;
+  }
+}
+
 export async function run() {
   const octokit = github.getOctokit(core.getInput("github-token"));
   const baseBranch = core.getInput("base-branch");
   const releaseBranch = core.getInput("release-branch");
   const confluenceSpace = core.getInput("confluence-space");
+  const createGithubReleaseFlag =
+    core.getInput("generate-github-release").toLowerCase() === "true";
   const { owner, repo } = github.context.repo;
   const releaseId = await generateReleaseNotes(
     octokit,
@@ -224,6 +252,7 @@ export async function run() {
     confluenceSpace,
     baseBranch,
     releaseBranch,
+    createGithubReleaseFlag,
   );
   core.setOutput("release-id", releaseId ?? "");
 }
@@ -235,6 +264,7 @@ export {
   releaseExists as _releaseExists,
   createRelease as _createRelease,
   listBranches as _listBranches,
+  createGithubRelease as _createGithubRelease,
   Octokit as _Octokit,
   generateReleaseNotesContent as _generateReleaseNotesContent,
   generateReleaseNotes as _generateReleaseNotes,

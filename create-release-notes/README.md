@@ -4,14 +4,15 @@ Generates release notes from commits between a base branch and a release branch.
 
 ## Inputs
 
-| Name               | Required | Default                               | Description                                                 |
-| ------------------ | -------- | ------------------------------------- | ----------------------------------------------------------- |
-| `github-token`     | Yes      | -                                     | GitHub token used to authenticate API requests.             |
-| `owner`            | Yes      | `${{ github.repository_owner }}`      | Repository owner (for example, `octocat`).                  |
-| `repo`             | Yes      | `${{ github.event.repository.name }}` | Repository name (for example, `hello-world`).               |
-| `base-branch`      | Yes      | -                                     | Branch to compare against (for example, `main`).            |
-| `release-branch`   | Yes      | -                                     | Release branch to inspect (for example, `releases/v1.2.3`). |
-| `confluence-space` | Yes      | -                                     | Confluence/Jira space key used to build Jira ticket links.  |
+| Name                      | Required | Default                               | Description                                                              |
+| ------------------------- | -------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| `github-token`            | Yes      | -                                     | GitHub token used to authenticate API requests.                          |
+| `owner`                   | Yes      | `${{ github.repository_owner }}`      | Repository owner (for example, `octocat`).                               |
+| `repo`                    | Yes      | `${{ github.event.repository.name }}` | Repository name (for example, `hello-world`).                            |
+| `base-branch`             | Yes      | -                                     | Branch to compare against (for example, `main`).                         |
+| `release-branch`          | Yes      | -                                     | Release branch to inspect (for example, `releases/v1.2.3`).              |
+| `confluence-space`        | Yes      | -                                     | Confluence/Jira space key used to build Jira ticket links.               |
+| `generate-github-release` | No       | `false`                               | If `true`, creates or updates a GitHub release with the generated notes. |
 
 ## Permissions
 
