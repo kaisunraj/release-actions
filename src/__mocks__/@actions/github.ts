@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 const mockPulls = {
   list: jest.fn().mockResolvedValue({ data: [] }),
   create: jest.fn().mockResolvedValue({
