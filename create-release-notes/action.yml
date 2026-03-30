@@ -1,0 +1,27 @@
+name: "Create Release Notes"
+description: "Generate release notes from a release branch into a base branch"
+inputs:
+  github-token:
+    description: "GitHub token used to authenticate API requests"
+    required: true
+  owner:
+    description: "The owner of the repository (e.g. octocat)"
+    required: true
+    default: ${{ github.repository_owner }}
+  repo:
+    description: "The name of the repository (e.g. hello-world)"
+    required: true
+    default: ${{ github.event.repository.name }}
+  base-branch:
+    description: "The branch to merge into (e.g. main)"
+    required: true
+  release-branch:
+    description: "The branch to merge from (e.g. release/1.2.3)"
+    required: true
+  confluence-space:
+    description: "The Confluence space key to generate JIRA ticket links"
+    required: true
+
+runs:
+  using: "node24"
+  main: "../dist/release-notes-action/index.js"
