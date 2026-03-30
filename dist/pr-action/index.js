@@ -32306,6 +32306,7 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     }
     // Sort the release branches by version number and get the latest one
     const releaseBranchNames = releaseBranches.map((branch) => branch.name);
+    console.log("Found release branches:", releaseBranchNames);
     releaseBranchNames.sort(sortReleaseVersions);
     const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
     core.info(`Latest release tag: ${releaseTag}`);
