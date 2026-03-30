@@ -68,6 +68,8 @@ jobs:
       - if: ${{ failure() && steps.diff.outcome == 'failure' }}
         name: Commit dist/ Changes
         id: commit
+        env:
+          BASE_BRANCH: ${{ github.head_ref || github.ref_name }} 
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -76,5 +78,5 @@ jobs:
           git add dist/
           git commit -m "Update dist/ directory from build"
           git push origin $BRANCH_NAME
-          export PR_URL="https://github.com/${{ github.repository }}/compare/${{ github.head_ref }}...${BRANCH_NAME}"
+          export PR_URL="https://github.com/${{ github.repository }}/compare/${BASE_BRANCH}...${BRANCH_NAME}"
           echo "::notice title=Dist Directory Out of Date::The dist/ directory was out of date. A new branch with the updated dist/ has been pushed: $PR_URL"
