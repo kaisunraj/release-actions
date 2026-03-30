@@ -32140,6 +32140,7 @@ exports._generateJiraLinks = generateJiraLinks;
 exports._releaseExists = releaseExists;
 exports._createRelease = createRelease;
 exports._listBranches = listBranches;
+exports._createGithubRelease = createGithubRelease;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
 exports._generateReleaseNotes = generateReleaseNotes;
 const core = __importStar(__nccwpck_require__(7484));

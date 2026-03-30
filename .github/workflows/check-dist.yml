@@ -67,7 +67,7 @@ jobs:
         name: Commit dist/ Changes
         id: commit
         env:
-          BASE_BRANCH: ${{ github.head_ref || github.ref_name }} 
+          BASE_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

@@ -3,12 +3,12 @@ name: Validate PR Labels
 on:
   pull_request:
     types:
-        - opened
-        - reopened
-        - synchronize
-        - labeled
-        - unlabeled
-        - ready_for_review
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+      - ready_for_review
 
 jobs:
   require-at-least-one-label:

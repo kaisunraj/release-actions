@@ -242,7 +242,8 @@ export async function run() {
   const baseBranch = core.getInput("base-branch");
   const releaseBranch = core.getInput("release-branch");
   const confluenceSpace = core.getInput("confluence-space");
-  const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
+  const createGithubReleaseFlag =
+    core.getInput("generate-github-release").toLowerCase() === "true";
   const { owner, repo } = github.context.repo;
   const releaseId = await generateReleaseNotes(
     octokit,
@@ -263,6 +264,7 @@ export {
   releaseExists as _releaseExists,
   createRelease as _createRelease,
   listBranches as _listBranches,
+  createGithubRelease as _createGithubRelease,
   Octokit as _Octokit,
   generateReleaseNotesContent as _generateReleaseNotesContent,
   generateReleaseNotes as _generateReleaseNotes,
