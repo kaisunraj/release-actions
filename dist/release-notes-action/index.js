@@ -32253,7 +32253,20 @@ function generateReleaseNotesContent(links) {
     }
     return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
-async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch) {
+async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent) {
+    const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
+    if (releaseExistsId) {
+        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
+        console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
+        return releaseExistsId;
+    }
+    else {
+        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
+        console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
+        return releaseId;
+    }
+}
+async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
     listBranches();
     const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
@@ -32267,16 +32280,12 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     console.log("Jira Links:", links);
     const releaseNotesContent = generateReleaseNotesContent(links);
     console.log("Release Notes Content:", releaseNotesContent);
-    const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
-    if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
-        console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
-        return releaseExistsId;
+    if (createReleaseTag) {
+        return await createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
     }
     else {
-        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
-        console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
-        return releaseId;
+        core.notice(`Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`);
+        return;
     }
 }
 async function run() {
@@ -32284,8 +32293,9 @@ async function run() {
     const baseBranch = core.getInput("base-branch");
     const releaseBranch = core.getInput("release-branch");
     const confluenceSpace = core.getInput("confluence-space");
+    const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
     const { owner, repo } = github.context.repo;
-    const releaseId = await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch);
+    const releaseId = await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createGithubReleaseFlag);
     core.setOutput("release-id", releaseId ?? "");
 }
 
