@@ -13,6 +13,9 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "src/**"
+      - "package.json"
   push:
     branches:
       - main
