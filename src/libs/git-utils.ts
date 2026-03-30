@@ -83,6 +83,7 @@ export async function getLatestReleaseTag(
   const releaseBranchNames = releaseBranches.map(
     (branch: { name: string }) => branch.name,
   );
+  console.log("Found release branches:", releaseBranchNames);
   releaseBranchNames.sort(sortReleaseVersions);
 
   const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
