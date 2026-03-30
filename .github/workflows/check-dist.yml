@@ -64,12 +64,17 @@ jobs:
             exit 1
           fi
 
-      # If `dist/` was different than expected, upload the expected version as a
-      # workflow artifact.
+      # If `dist/` was different than expected commit to new branch a provide a link to the PR for easy review.
       - if: ${{ failure() && steps.diff.outcome == 'failure' }}
-        name: Upload Artifact
-        id: upload
-        uses: actions/upload-artifact@v6
-        with:
-          name: dist
-          path: dist/
+        name: Commit dist/ Changes
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          export BRANCH_NAME="update-dist-$(date +%s)"
+          git checkout -b $BRANCH_NAME
+          git add dist/
+          git commit -m "Update dist/ directory from build"
+          git push origin $BRANCH_NAME
+          export PR_URL="https://github.com/${{ github.repository }}/compare/${{ github.head_ref }}...${BRANCH_NAME}"
+          echo "::notice title=Dist Directory Out of Date::The dist/ directory was out of date. A new branch with the updated dist/ has been pushed: $PR_URL"
