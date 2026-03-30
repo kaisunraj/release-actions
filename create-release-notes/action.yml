@@ -3,8 +3,7 @@ description: 'Generate release notes from a release branch into a base branch'
 inputs:
   github-token:
     description: 'GitHub token used to authenticate API requests'
-    required: false
-    default: ${{ github.token }}
+    required: true
   owner:
     description: 'The owner of the repository (e.g. octocat)'
     required: true

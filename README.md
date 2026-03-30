@@ -10,6 +10,8 @@ TypeScript-based GitHub Actions for release automation:
 - [create-pr](create-pr/README.md): Raises a PR from target to base with a release-aware title.
 - [create-release-notes](create-release-notes/README.md): Builds release notes from commit messages and creates/updates a GitHub release.
 
+Both actions require a `github-token` input.
+
 ## Requirements
 
 - Node.js 24 (`>=24 <25`)
@@ -48,6 +50,7 @@ This builds both action bundles:
 - Source files are under `src`.
 - Action manifests are in `create-pr/action.yml` and `create-release-notes/action.yml`.
 - Built bundles in `dist` are the runtime entrypoints referenced by the action manifests.
+- Keep README input/output docs in sync with each action manifest.
 
 ## Testing And Mocks
 

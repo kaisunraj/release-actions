@@ -8,13 +8,17 @@ Raises a pull request from a target branch into a base branch.
 | --- | --- | --- | --- |
 | `base-branch` | Yes | - | Branch to merge into (for example, `main`). |
 | `target-branch` | Yes | - | Branch to merge from (for example, `release/1.2.3`). |
-| `github-token` | No | `${{ github.token }}` | GitHub token used to authenticate API requests. |
+| `github-token` | Yes | - | GitHub token used to authenticate API requests. |
 
 ## Outputs
 
 | Name | Description |
 | --- | --- |
 | `pull-request-url` | URL of the created pull request. |
+
+## Permissions
+
+Github token used with this action must have `contents: read` and `pull-requests: write` permissions to create pull requests in the repository. The default token provided by GitHub Actions (`${{ github.token }}`) does not have the permission to create pull requests, so you must provide a custom token with the necessary permissions via repository secrets.
 
 ## Usage
 
@@ -23,10 +27,6 @@ name: Create Release PR
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pull-requests: write
 
 jobs:
   create-pr:

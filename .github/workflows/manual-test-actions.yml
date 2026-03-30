@@ -2,12 +2,6 @@ name: Test Create PR and Create Release Notes Actions
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - '**/action.yml'
 
 permissions:
   contents: write
@@ -63,8 +57,10 @@ jobs:
   teardown:
     runs-on: ubuntu-latest
     needs: manual-tests
-    environment: manual-testing
     steps:
+      - name: Wait to allow manual verification
+        run: sleep 300 # Wait for 5 minutes to allow manual verification of the created PR and release notes
+      
       - name: Close created PR
         run: |
           curl -X PATCH \
