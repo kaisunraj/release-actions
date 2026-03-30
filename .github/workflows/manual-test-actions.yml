@@ -59,7 +59,7 @@ jobs:
     needs: manual-tests
     steps:
       - name: Wait to allow manual verification
-        run: sleep 300 # Wait for 5 minutes to allow manual verification of the created PR and release notes
+        run: sleep 30 # Wait for 30 seconds to allow manual verification of the created PR and release notes
       
       - name: Close created PR
         run: |
