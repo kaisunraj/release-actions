@@ -1,4 +1,4 @@
-import { getLatestReleaseTag, getTagFromBranchName } from "../libs/git-utils";
+import { getLatestReleaseTag, getTagFromBranchName, sortReleaseVersions } from "../libs/git-utils";
 import * as core from "@actions/core";
 
 jest.mock("@actions/core");
@@ -10,6 +10,35 @@ const mockOctokit = {
 beforeEach(() => {
   jest.clearAllMocks();
 });
+
+
+test("sortReleaseVersions correctly sorts version strings", () => {
+  const versions = [
+    "v1.2.3",
+    "v1.2",
+    "v1.10.0",
+    "v1.2.10",
+    "v2",
+    "v1.2.3-beta",
+    "v1.2.3-alpha",
+    "v2",
+    "v1.2.3-rc.1",
+  ];
+  const expectedLinks = [
+    "v1.2",
+    "v1.2.3",
+    "v1.2.3-alpha",
+    "v1.2.3-beta",
+    "v1.2.3-rc.1",
+    "v1.2.10",
+    "v1.10.0",
+    "v2",
+    "v2"
+  ];
+  const result = versions.sort(sortReleaseVersions);
+  expect(result).toEqual(expectedLinks);
+});
+
 
 test("getLatestReleaseTag fails when no release branches are found", async () => {
   mockOctokit.request.mockResolvedValue({

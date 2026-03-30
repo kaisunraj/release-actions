@@ -32244,9 +32244,47 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
 const core = __importStar(__nccwpck_require__(7484));
+/**
+ *
+ * @param version - The version string to extract parts from.
+ * @returns An array of version parts, where numeric parts are converted to numbers and non-numeric parts remain as strings.
+ */
+function extractVersionParts(version) {
+    return version
+        .split(/[\.-]/)
+        .map((part) => (isNaN(Number(part)) ? part : Number(part)));
+}
+/**
+ * Compares two version strings and returns a number indicating their relative order.
+ * @param a - The first version string.
+ * @param b - The second version string.
+ * @returns A negative number if a < b, a positive number if a > b, or 0 if they are equal.
+ */
+function sortReleaseVersions(a, b) {
+    const partsA = extractVersionParts(a);
+    const partsB = extractVersionParts(b);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+        const partA = partsA[i] || 0;
+        const partB = partsB[i] || 0;
+        if (partA === partB)
+            continue;
+        if (partA === 0 || partB === 0) {
+            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
+            return partA === 0 ? -1 : 1;
+        }
+        // If both parts are numbers, compare numerically
+        if (typeof partA === "number" && typeof partB === "number") {
+            return partA - partB;
+        }
+        // Otherwise, compare as strings
+        return String(partA).localeCompare(String(partB));
+    }
+    return 0;
+}
 /**
  * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
  * and returning the one with the highest version number
@@ -32268,7 +32306,7 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     }
     // Sort the release branches by version number and get the latest one
     const releaseBranchNames = releaseBranches.map((branch) => branch.name);
-    releaseBranchNames.sort();
+    releaseBranchNames.sort(sortReleaseVersions);
     const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
     core.info(`Latest release tag: ${releaseTag}`);
     return releaseTag;
