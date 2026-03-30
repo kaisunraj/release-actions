@@ -25,7 +25,7 @@ jobs:
         run: |
           export RELEASE_BRANCH="releases/v$(date +%s)"
           echo "release-branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
-      
+
       - name: Create files and commits
         run: |
           git checkout -b ${{ steps.generate_branch_name.outputs.release-branch }}
@@ -36,7 +36,7 @@ jobs:
           echo "dummy content" > OVP5678.txt
           git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
           git push origin HEAD:${{ steps.generate_branch_name.outputs.release-branch }}
-          
+
       - name: Run create-pr action
         id: create_pr
         uses: ./create-pr
@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Wait to allow manual verification
         run: sleep 30 # Wait for 30 seconds to allow manual verification of the created PR and release notes
-      
+
       - name: Close created PR
         run: |
           curl -X PATCH \
@@ -68,7 +68,7 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls/${{ needs.manual-tests.outputs.pull-request-number }} \
             -d '{"state": "closed"}'
-      
+
       - name: Delete created branch
         run: |
           curl -X DELETE \

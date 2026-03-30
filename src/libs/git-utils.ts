@@ -1,9 +1,8 @@
 import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
 
-
 /**
- * 
+ *
  * @param version - The version string to extract parts from.
  * @returns An array of version parts, where numeric parts are converted to numbers and non-numeric parts remain as strings.
  */
@@ -26,14 +25,13 @@ export function sortReleaseVersions(a: string, b: string): number {
   for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
     const partA = partsA[i] || 0;
     const partB = partsB[i] || 0;
-    
+
     if (partA === partB) continue;
-    
+
     if (partA === 0 || partB === 0) {
       // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
       return partA === 0 ? -1 : 1;
     }
-
 
     // If both parts are numbers, compare numerically
     if (typeof partA === "number" && typeof partB === "number") {

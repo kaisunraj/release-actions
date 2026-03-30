@@ -1,3 +1,3 @@
-import {run as createPr} from "./create-pr";
+import { run as createPr } from "./create-pr";
 
 createPr();

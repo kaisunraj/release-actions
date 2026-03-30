@@ -4,16 +4,16 @@ Raises a pull request from a target branch into a base branch.
 
 ## Inputs
 
-| Name | Required | Default | Description |
-| --- | --- | --- | --- |
-| `base-branch` | Yes | - | Branch to merge into (for example, `main`). |
-| `target-branch` | Yes | - | Branch to merge from (for example, `release/1.2.3`). |
-| `github-token` | Yes | - | GitHub token used to authenticate API requests. |
+| Name            | Required | Default | Description                                          |
+| --------------- | -------- | ------- | ---------------------------------------------------- |
+| `base-branch`   | Yes      | -       | Branch to merge into (for example, `main`).          |
+| `target-branch` | Yes      | -       | Branch to merge from (for example, `release/1.2.3`). |
+| `github-token`  | Yes      | -       | GitHub token used to authenticate API requests.      |
 
 ## Outputs
 
-| Name | Description |
-| --- | --- |
+| Name               | Description                      |
+| ------------------ | -------------------------------- |
 | `pull-request-url` | URL of the created pull request. |
 
 ## Permissions

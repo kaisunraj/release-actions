@@ -63,12 +63,15 @@ test("run executes the full workflow successfully", async () => {
 
   (github.context as any).repo = { owner: "owner", repo: "repo" };
 
-
   await run();
 
-  expect(core.getInput).toHaveBeenCalledWith("github-token", { required: true });
+  expect(core.getInput).toHaveBeenCalledWith("github-token", {
+    required: true,
+  });
   expect(core.getInput).toHaveBeenCalledWith("base-branch", { required: true });
-  expect(core.getInput).toHaveBeenCalledWith("target-branch", { required: true });
+  expect(core.getInput).toHaveBeenCalledWith("target-branch", {
+    required: true,
+  });
 
   expect(mockOctokitBase.rest.pulls.create).toHaveBeenCalledWith({
     owner: "owner",
@@ -111,13 +114,25 @@ test("checkExistingPr fails when an open PR already exists", async () => {
     data: [{ html_url: "https://github.com/owner/repo/pull/1" }],
   });
 
-  const result = await _checkExistingPr(mockOctokitBase as any, "owner", "repo", "develop", "main");
+  const result = await _checkExistingPr(
+    mockOctokitBase as any,
+    "owner",
+    "repo",
+    "develop",
+    "main",
+  );
   expect(result).toBe("https://github.com/owner/repo/pull/1");
 });
 
 test("checkExistingPr returns null when no open PR exists", async () => {
   mockOctokitBase.rest.pulls.list.mockResolvedValue({ data: [] });
 
-  const result = await _checkExistingPr(mockOctokitBase as any, "owner", "repo", "develop", "main");
+  const result = await _checkExistingPr(
+    mockOctokitBase as any,
+    "owner",
+    "repo",
+    "develop",
+    "main",
+  );
   expect(result).toBeUndefined();
 });

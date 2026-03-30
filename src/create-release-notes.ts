@@ -7,17 +7,23 @@ type Octokit = ReturnType<typeof github.getOctokit>;
 
 function listBranches(): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    exec("git branch -a", (error: Error | null, stdout: string, stderr: string) => {
-      if (error) {
-        return reject(new Error(`Error listing branches: ${error.message}`));
-      }
-      if (stderr) {
-        return reject(new Error(`Error output: ${stderr}`));
-      }
-      const branches = stdout.split("\n").map((b) => b.trim()).filter(Boolean);
-      console.log("Branches:", branches);
-      resolve(branches);
-    });
+    exec(
+      "git branch -a",
+      (error: Error | null, stdout: string, stderr: string) => {
+        if (error) {
+          return reject(new Error(`Error listing branches: ${error.message}`));
+        }
+        if (stderr) {
+          return reject(new Error(`Error output: ${stderr}`));
+        }
+        const branches = stdout
+          .split("\n")
+          .map((b) => b.trim())
+          .filter(Boolean);
+        console.log("Branches:", branches);
+        resolve(branches);
+      },
+    );
   });
 }
 
@@ -99,7 +105,7 @@ async function createRelease(
   repo: string,
   tag: string,
   releaseBranch: string,
-  body: string
+  body: string,
 ) {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
@@ -128,7 +134,7 @@ async function updateRelease(
   releaseId: number,
   tag: string,
   releaseBranch: string,
-  body: string
+  body: string,
 ) {
   await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
     owner: owner,
@@ -160,7 +166,7 @@ async function generateReleaseNotes(
   confluenceSpace: string,
   baseBranch: string,
   releaseBranch: string,
-) : Promise<number | undefined> {
+): Promise<number | undefined> {
   const releaseTag = getTagFromBranchName(releaseBranch);
   listBranches();
   const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
@@ -176,12 +182,31 @@ async function generateReleaseNotes(
   console.log("Release Notes Content:", releaseNotesContent);
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
-    await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
-    console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
+    await updateRelease(
+      octokit,
+      owner,
+      repo,
+      releaseExistsId,
+      releaseTag,
+      releaseBranch,
+      releaseNotesContent,
+    );
+    console.log(
+      `Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`,
+    );
     return releaseExistsId;
   } else {
-    const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
-    console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
+    const releaseId = await createRelease(
+      octokit,
+      owner,
+      repo,
+      releaseTag,
+      releaseBranch,
+      releaseNotesContent,
+    );
+    console.log(
+      `Created new release with tag ${releaseTag} and id ${releaseId}`,
+    );
     return releaseId;
   }
 }
