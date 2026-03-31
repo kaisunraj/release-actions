@@ -32268,6 +32268,7 @@ async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBran
     }
 }
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
+    console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
     listBranches();
     const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
@@ -32281,18 +32282,20 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     console.log("Jira Links:", links);
     const releaseNotesContent = generateReleaseNotesContent(links);
     console.log("Release Notes Content:", releaseNotesContent);
-    if (createReleaseTag) {
+    if (createReleaseTag === true) {
+        console.log(`Creating/updating GitHub release for tag ${releaseTag}...`);
         return await createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
     }
     else {
+        console.log(`Skipping GitHub release creation for tag ${releaseTag} since createReleaseTag is false. Outputting release notes content instead...`);
         core.notice(`Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`);
         return;
     }
 }
 async function run() {
     const octokit = github.getOctokit(core.getInput("github-token"));
-    const baseBranch = core.getInput("base-branch");
-    const releaseBranch = core.getInput("release-branch");
+    const baseBranch = `origin/${core.getInput("base-branch")}`;
+    const releaseBranch = `origin/${core.getInput("release-branch")}`;
     const confluenceSpace = core.getInput("confluence-space");
     const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
     const { owner, repo } = github.context.repo;
