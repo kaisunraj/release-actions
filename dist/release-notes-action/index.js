@@ -32288,7 +32288,7 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     }
     else {
         console.log(`Skipping GitHub release creation for tag ${releaseTag} since createReleaseTag is false. Outputting release notes content instead...`);
-        core.notice(`Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`);
+        core.warning(`Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`);
         return;
     }
 }

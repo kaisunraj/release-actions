@@ -1,3 +1,5 @@
+import { warning } from "@actions/core";
+
 module.exports = {
   getInput: jest.fn((name) => {
     if (name === "github-token") return "fake-token";
@@ -9,4 +11,5 @@ module.exports = {
   info: jest.fn(),
   setOutput: jest.fn(),
   notice: jest.fn(),
+  warning: jest.fn(),
 };
