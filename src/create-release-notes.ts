@@ -156,7 +156,7 @@ function generateReleaseNotesContent(links: string[]) {
   if (links.length === 0) {
     return "No Jira tickets found for this release.";
   }
-  return `Jira Tickets:\n ${links.map((link) => `- ${link}`).join("\n")}`;
+  return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
 
 async function createGithubRelease(

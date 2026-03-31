@@ -290,6 +290,6 @@ test("Generate release notes with createGithubReleaseTag false does not call cre
   );
   expect(mockOctokit.request).not.toHaveBeenCalled();
   expect(core.notice).toHaveBeenCalledWith(
-    `Release notes content for tag v1.0.0:%0AJira Tickets:%0A - https://confluenceSpace.atlassian.net/browse/OVP-1%0A- https://confluenceSpace.atlassian.net/browse/OVP-2`
+    `Release notes content for tag v1.0.0:%0AJira Tickets:%0A- https://confluenceSpace.atlassian.net/browse/OVP-1%0A- https://confluenceSpace.atlassian.net/browse/OVP-2`,
   );
 });
