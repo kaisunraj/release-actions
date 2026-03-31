@@ -32294,8 +32294,8 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
 }
 async function run() {
     const octokit = github.getOctokit(core.getInput("github-token"));
-    const baseBranch = `origin/${core.getInput("base-branch")}`;
-    const releaseBranch = `origin/${core.getInput("release-branch")}`;
+    const baseBranch = `origin/${core.getInput("base-branch").replace(/^origin\//, "")}`;
+    const releaseBranch = `origin/${core.getInput("release-branch").replace(/^origin\//, "")}`;
     const confluenceSpace = core.getInput("confluence-space");
     const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
     const { owner, repo } = github.context.repo;
