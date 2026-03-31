@@ -12,4 +12,10 @@ module.exports = {
   setOutput: jest.fn(),
   notice: jest.fn(),
   warning: jest.fn(),
+  summary: {
+    addHeading: jest.fn().mockReturnThis(),
+    addDetails: jest.fn().mockReturnThis(),
+    addList: jest.fn().mockReturnThis(),
+    write: jest.fn(),
+  },
 };

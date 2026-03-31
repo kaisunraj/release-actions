@@ -20,7 +20,7 @@ function listBranches(): Promise<string[]> {
           .split("\n")
           .map((b) => b.trim())
           .filter(Boolean);
-        console.log("Branches:", branches);
+        console.debug("Branches:", branches);
         resolve(branches);
       },
     );
@@ -237,9 +237,10 @@ async function generateReleaseNotes(
     console.log(
       `Skipping GitHub release creation for tag ${releaseTag} since createReleaseTag is false. Outputting release notes content instead...`,
     );
-    core.notice(
-      `Release notes content for tag ${releaseTag}:%0A${releaseNotesContent.replace(/\n/g, "%0A")}`,
-    );
+    core.summary
+      .addHeading(`Release notes for tag ${releaseTag}`)
+      .addList(links);
+    core.summary.write({ overwrite: true });
     return;
   }
 }

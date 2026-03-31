@@ -101,6 +101,9 @@ export function getTagFromBranchName(
   pattern: RegExp = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/,
 ): string {
   console.log(`Extracting tag from branch name: ${branchName}`);
+  if (branchName.replace(/^origin\//, "") === "develop") {
+    return "develop";
+  }
   const match = branchName.match(pattern);
   if (!match) {
     throw new Error(

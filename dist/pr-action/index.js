@@ -32321,6 +32321,9 @@ async function getLatestReleaseTag(octokit, owner, repo) {
  */
 function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
     console.log(`Extracting tag from branch name: ${branchName}`);
+    if (branchName.replace(/^origin\//, "") === "develop") {
+        return "develop";
+    }
     const match = branchName.match(pattern);
     if (!match) {
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
