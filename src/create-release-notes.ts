@@ -156,7 +156,7 @@ function generateReleaseNotesContent(links: string[]) {
   if (links.length === 0) {
     return "No Jira tickets found for this release.";
   }
-  return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
+  return `Jira Tickets:\n ${links.map((link) => `- ${link}`).join("\n")}`;
 }
 
 async function createGithubRelease(
@@ -237,8 +237,8 @@ async function generateReleaseNotes(
     console.log(
       `Skipping GitHub release creation for tag ${releaseTag} since createReleaseTag is false. Outputting release notes content instead...`,
     );
-    core.warning(
-      `Release notes content for tag ${releaseTag}:\n${releaseNotesContent}`,
+    core.notice(
+      `Release notes content for tag ${releaseTag}:%0A${releaseNotesContent.replace(/\n/g, "%0A")}`,
     );
     return;
   }
