@@ -30,7 +30,7 @@ jobs:
             }
 
             core.info(`PR has ${labels.length} label(s): ${labels.map(l => l.name).join(", ")}`);
-      
+
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:
