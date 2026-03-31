@@ -289,5 +289,5 @@ test("Generate release notes with createGithubReleaseTag false does not call cre
     false, // createGithubReleaseTag
   );
   expect(mockOctokit.request).not.toHaveBeenCalled();
-  expect(core.notice).toHaveBeenCalled();
+  expect(core.warning).toHaveBeenCalled();
 });
