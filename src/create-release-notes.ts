@@ -239,8 +239,7 @@ async function generateReleaseNotes(
     );
     core.summary.addHeading(`Release notes for tag ${releaseTag}`).addDetails(
       "Jira Tickets", releaseNotesContent,
-    );
-    core.summary.write();
+    ).write();
     return;
   }
 }
