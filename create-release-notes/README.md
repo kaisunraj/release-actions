@@ -31,6 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Must fetch full history to compare commits between branches
+  
       - name: Run create-release-notes action
         uses: ./create-release-notes
         with:
