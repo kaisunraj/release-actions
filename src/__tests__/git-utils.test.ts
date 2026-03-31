@@ -83,6 +83,7 @@ describe("getTagFromBranchName extracts the tag from a branch name", () => {
     ["releases/v1.2.3-beta", "v1.2.3-beta"],
     ["releases/v1", "v1"],
     ["origin/releases/v1.2.1", "v1.2.1"],
+    ["origin/develop", "develop"],
   ])(
     "returns the correct tag for branch name '%s'",
     (branchName, expectedTag) => {
@@ -93,7 +94,7 @@ describe("getTagFromBranchName extracts the tag from a branch name", () => {
 });
 
 describe("getTagFromBranchName returns null for non-matching branch names", () => {
-  it.each(["main", "develop", "feature/OVP-1234"])(
+  it.each(["main", "feature/OVP-1234"])(
     "returns null for branch name '%s'",
     (branchName) => {
       expect(() => getTagFromBranchName(branchName)).toThrow(

@@ -32160,7 +32160,7 @@ function listBranches() {
                 .split("\n")
                 .map((b) => b.trim())
                 .filter(Boolean);
-            console.log("Branches:", branches);
+            console.debug("Branches:", branches);
             resolve(branches);
         });
     });
@@ -32288,7 +32288,10 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     }
     else {
         console.log(`Skipping GitHub release creation for tag ${releaseTag} since createReleaseTag is false. Outputting release notes content instead...`);
-        core.summary.addHeading(`Release notes for tag ${releaseTag}`).addDetails("Jira Tickets", releaseNotesContent);
+        core.summary
+            .addHeading(`Release notes for tag ${releaseTag}`)
+            .addList(links);
+        core.summary.write({ overwrite: true });
         return;
     }
 }
@@ -32422,6 +32425,9 @@ async function getLatestReleaseTag(octokit, owner, repo) {
  */
 function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
     console.log(`Extracting tag from branch name: ${branchName}`);
+    if (branchName.replace(/^origin\//, "") === "develop") {
+        return "develop";
+    }
     const match = branchName.match(pattern);
     if (!match) {
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
