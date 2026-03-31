@@ -32298,9 +32298,7 @@ async function run() {
     const releaseBranch = `origin/${core.getInput("release-branch")}`;
     const confluenceSpace = core.getInput("confluence-space");
     const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
-    const createGithubReleaseFlag = core.getInput("generate-github-release").toLowerCase() === "true";
     const { owner, repo } = github.context.repo;
-    const releaseId = await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createGithubReleaseFlag);
     const releaseId = await generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createGithubReleaseFlag);
     core.setOutput("release-id", releaseId ?? "");
 }
