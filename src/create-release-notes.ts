@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { exec } from "node:child_process";
-import { getTagFromBranchName } from "./libs/git-utils";
+import { getLatestReleaseTag, getTagFromBranchName } from "./libs/git-utils";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
@@ -106,6 +106,7 @@ async function createRelease(
   tag: string,
   releaseBranch: string,
   body: string,
+  draft: boolean = true
 ) {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
@@ -135,6 +136,7 @@ async function updateRelease(
   tag: string,
   releaseBranch: string,
   body: string,
+  draft: boolean = true,
 ) {
   await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
     owner: owner,
@@ -144,7 +146,7 @@ async function updateRelease(
     target_commitish: releaseBranch.replace("origin/", ""),
     name: tag,
     body: body,
-    draft: false,
+    draft: draft,
     prerelease: false,
     headers: {
       "X-GitHub-Api-Version": "2026-03-10",
@@ -166,6 +168,7 @@ async function createGithubRelease(
   releaseTag: string,
   releaseBranch: string,
   releaseNotesContent: string,
+  draft: boolean = true,
 ): Promise<number> {
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
@@ -177,6 +180,7 @@ async function createGithubRelease(
       releaseTag,
       releaseBranch,
       releaseNotesContent,
+      draft,
     );
     console.log(
       `Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`,
@@ -190,12 +194,53 @@ async function createGithubRelease(
       releaseTag,
       releaseBranch,
       releaseNotesContent,
+      draft,
     );
     console.log(
       `Created new release with tag ${releaseTag} and id ${releaseId}`,
     );
     return releaseId;
   }
+}
+
+function publishDraftRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseId: number,
+) {
+  return octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
+    owner: owner,
+    repo: repo,
+    release_id: releaseId,
+    draft: false,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+}
+
+async function publishLatestRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<number | undefined> {
+  console.log("Publishing latest release...");
+  const latestTag = await getLatestReleaseTag(
+    octokit,
+    owner,
+    repo,
+  );
+  const releaseExistsId = await releaseExists(octokit, owner, repo, latestTag!);
+  if (releaseExistsId) {
+    console.log(
+      `Latest release with tag ${latestTag} already exists with id ${releaseExistsId}. Updating it to publish...`,
+    );
+    await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+    console.log(`Published latest release with tag ${latestTag} and id ${releaseExistsId}`);
+    return releaseExistsId;
+  }
+  return;
 }
 
 async function generateReleaseNotes(
@@ -210,6 +255,13 @@ async function generateReleaseNotes(
   console.debug(
     `generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`,
   );
+  // If branch base branch and release branch are the same, publish latest release
+  if (baseBranch === releaseBranch || releaseBranch === `origin/${baseBranch}`) {
+    const result = await publishLatestRelease(octokit, owner, repo);
+    if (result) {
+      return result;
+    }
+  }
   const releaseTag = getTagFromBranchName(releaseBranch);
   listBranches();
   const commitMessages = await getCommitMessages(baseBranch, releaseBranch);

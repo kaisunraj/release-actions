@@ -32215,7 +32215,7 @@ async function releaseExists(octokit, owner, repo, tag) {
         throw error;
     }
 }
-async function createRelease(octokit, owner, repo, tag, releaseBranch, body) {
+async function createRelease(octokit, owner, repo, tag, releaseBranch, body, draft = true) {
     const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
         owner,
         repo,
@@ -32232,7 +32232,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body) {
     });
     return response.data.id;
 }
-async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body) {
+async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body, draft = true) {
     await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
         owner: owner,
         repo: repo,
@@ -32241,7 +32241,7 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: false,
+        draft: draft,
         prerelease: false,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
@@ -32254,21 +32254,51 @@ function generateReleaseNotesContent(links) {
     }
     return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
-async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent) {
+async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft = true) {
     const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
     if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
+        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, draft);
         console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
         return releaseExistsId;
     }
     else {
-        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
+        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft);
         console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
         return releaseId;
     }
 }
+function publishDraftRelease(octokit, owner, repo, releaseId) {
+    return octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
+        owner: owner,
+        repo: repo,
+        release_id: releaseId,
+        draft: false,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+}
+async function publishLatestRelease(octokit, owner, repo) {
+    console.log("Publishing latest release...");
+    const latestTag = await (0, git_utils_1.getLatestReleaseTag)(octokit, owner, repo);
+    const releaseExistsId = await releaseExists(octokit, owner, repo, latestTag);
+    if (releaseExistsId) {
+        console.log(`Latest release with tag ${latestTag} already exists with id ${releaseExistsId}. Updating it to publish...`);
+        await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+        console.log(`Published latest release with tag ${latestTag} and id ${releaseExistsId}`);
+        return releaseExistsId;
+    }
+    return;
+}
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
+    // If branch base branch and release branch are the same, publish latest release
+    if (baseBranch === releaseBranch || releaseBranch === `origin/${baseBranch}`) {
+        const result = await publishLatestRelease(octokit, owner, repo);
+        if (result) {
+            return result;
+        }
+    }
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
     listBranches();
     const commitMessages = await getCommitMessages(baseBranch, releaseBranch);

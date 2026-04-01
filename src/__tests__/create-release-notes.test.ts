@@ -7,6 +7,12 @@ const { exec: mockExec } = jest.requireMock("node:child_process") as {
 };
 
 import * as core from "@actions/core";
+import * as github from "@actions/github";
+
+jest.mock("@actions/core");
+jest.mock("@actions/github");
+
+const mockOctokit: any = github.getOctokit("fake-token");
 
 import {
   _createGithubRelease,
@@ -108,9 +114,7 @@ test("Generating jira links from tickets", () => {
 });
 
 test("Test release exists returns false when release does not exist", async () => {
-  const mockOctokit = {
-    request: jest.fn().mockRejectedValue({ status: 404 }),
-  };
+  mockOctokit.request.mockRejectedValue({ status: 404 });
   const result = await _releaseExists(
     mockOctokit as any,
     "owner",
@@ -121,9 +125,7 @@ test("Test release exists returns false when release does not exist", async () =
 });
 
 test("Test release exists returns id when release exists", async () => {
-  const mockOctokit = {
-    request: jest.fn().mockResolvedValue({ data: { id: 123 } }),
-  };
+  mockOctokit.request.mockResolvedValue({ data: { id: 123 } })
   const result = await _releaseExists(
     mockOctokit as any,
     "owner",
@@ -134,20 +136,14 @@ test("Test release exists returns id when release exists", async () => {
 });
 
 test("Test releaseExists throws error on unexpected error", async () => {
-  const mockOctokit = {
-    request: jest
-      .fn()
-      .mockRejectedValue({ status: 500, message: "Server error" }),
-  };
+  mockOctokit.request.mockRejectedValue({ status: 500, message: "Server error" });
   await expect(
     _releaseExists(mockOctokit as any, "owner", "repo", "tag"),
   ).rejects.toEqual({ status: 500, message: "Server error" });
 });
 
 test("Test create release returns id", async () => {
-  const mockOctokit = {
-    request: jest.fn().mockResolvedValue({ data: { id: 456 } }),
-  };
+  mockOctokit.request.mockResolvedValue({ data: { id: 456 } });
   const result = await _createRelease(
     mockOctokit as any,
     "owner",
@@ -208,6 +204,7 @@ test("createGithubRelease when release does not exist", async () => {
   );
   expect(result).toBe(123);
 });
+
 
 test("Testing generateReleaseNotes release exists", async () => {
   mockExec.mockImplementation((command, callback) => {
