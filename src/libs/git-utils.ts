@@ -57,17 +57,18 @@ export async function getLatestReleaseTag(
   console.log(
     `Fetching branches for ${owner}/${repo} to find latest release tag...`,
   );
-  const branches = await octokit.request("GET /repos/{owner}/{repo}/branches", {
+  const branches = await octokit.paginate(octokit.rest.repos.listBranches, {
     owner,
     repo,
+    per_page: 100,
     headers: {
       "X-GitHub-Api-Version": "2026-03-10",
     },
   });
-
-  // Find branches that match the pattern "releases/v*.*.*"
-  const releaseBranches = branches.data.filter((branch: { name: string }) =>
-    /^releases\/v\d+\.\d+\.\d+$/.test(branch.name),
+  console.debug("Branches response:", branches);
+  // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
+  const releaseBranches = branches.filter((branch: { name: string }) =>
+    /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name),
   );
 
   if (releaseBranches.length === 0) {
