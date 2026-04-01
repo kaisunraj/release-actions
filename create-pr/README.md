@@ -32,9 +32,12 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Must fetch full history find release branches
+
       - name: Run create-pr action
-        uses: ./create-pr
+        uses: kaisunraj/release-actions/create-pr@v1
         with:
           base-branch: main
           target-branch: releases/v1.2.3

@@ -100,7 +100,7 @@ async function run(): Promise<void> {
     repo,
   );
 
-  core.info(`Pull request #${prNumber} created: ${html_url}`);
+  core.notice(`Pull request #${prNumber} created: ${html_url}`);
   core.setOutput("pull-request-url", html_url);
   core.setOutput("pull-request-number", prNumber);
 }

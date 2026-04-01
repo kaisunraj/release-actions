@@ -4,16 +4,16 @@ import {
   sortReleaseVersions,
 } from "../libs/git-utils";
 import * as core from "@actions/core";
+import * as github from "@actions/github";
 
 jest.mock("@actions/core");
-
-const mockOctokit = {
-  request: jest.fn(),
-};
+jest.mock("@actions/github");
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
+
+const mockOctokit = github.getOctokit("fake-token");
 
 test("sortReleaseVersions correctly sorts version strings", () => {
   const versions = [
@@ -43,9 +43,10 @@ test("sortReleaseVersions correctly sorts version strings", () => {
 });
 
 test("getLatestReleaseTag fails when no release branches are found", async () => {
-  mockOctokit.request.mockResolvedValue({
-    data: [{ name: "main" }, { name: "develop" }],
-  });
+  require("@actions/github").__setMockPaginate([
+    { name: "main" },
+    { name: "develop" },
+  ]);
 
   await getLatestReleaseTag(mockOctokit as any, "owner", "repo");
 
@@ -55,17 +56,15 @@ test("getLatestReleaseTag fails when no release branches are found", async () =>
 });
 
 test("getLatestReleaseTag returns the latest release tag", async () => {
-  mockOctokit.request.mockResolvedValue({
-    data: [
-      { name: "releases/v1.0.0" },
-      { name: "releases/v1.2.0" },
-      { name: "releases/v1.2.1" },
-      { name: "releases/v1.1.0" },
-      { name: "releases/v1.1.1" },
-      { name: "main" },
-      { name: "develop" },
-    ],
-  });
+  require("@actions/github").__setMockPaginate([
+    { name: "releases/v1.0.0" },
+    { name: "releases/v1.2.0" },
+    { name: "releases/v1.2.1" },
+    { name: "releases/v1.1.0" },
+    { name: "releases/v1.1.1" },
+    { name: "main" },
+    { name: "develop" },
+  ]);
 
   const latestTag = await getLatestReleaseTag(
     mockOctokit as any,

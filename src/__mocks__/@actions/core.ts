@@ -1,11 +1,10 @@
-import { warning } from "@actions/core";
-
-module.exports = {
+const core: any = {
   getInput: jest.fn((name) => {
     if (name === "github-token") return "fake-token";
     if (name === "base-branch") return "main";
     if (name === "target-branch") return "develop";
     if (name === "release-branch") return "releases/v999.9.9";
+    return "";
   }),
   setFailed: jest.fn(),
   info: jest.fn(),
@@ -19,3 +18,5 @@ module.exports = {
     write: jest.fn(),
   },
 };
+
+module.exports = core;

@@ -1,40 +1,19 @@
 import { run, _createPullRequest, _checkExistingPr } from "../create-pr";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import * as gitUtils from "../libs/git-utils";
 
 jest.mock("@actions/core");
 jest.mock("@actions/github");
-jest.mock("../libs/git-utils");
-
-let mockOctokitBase: any;
-const mockGetLatestReleaseTag =
-  gitUtils.getLatestReleaseTag as jest.MockedFunction<
-    typeof gitUtils.getLatestReleaseTag
-  >;
-const mockGetTagFromBranchName =
-  gitUtils.getTagFromBranchName as jest.MockedFunction<
-    typeof gitUtils.getTagFromBranchName
-  >;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockOctokitBase = (github.getOctokit as jest.Mock)("mock-token");
-  mockOctokitBase.rest.pulls.list.mockResolvedValue({ data: [] });
-  mockOctokitBase.rest.pulls.create.mockResolvedValue({
-    data: { number: 2, html_url: "https://github.com/owner/repo/pull/2" },
-  });
-  mockGetLatestReleaseTag.mockResolvedValue("releases/v1.2.1");
-  mockGetTagFromBranchName.mockReturnValue("v1.2.1");
 });
 
-test("create pull request successfully", async () => {
-  mockOctokitBase.rest.pulls.create.mockResolvedValue({
-    data: { html_url: "https://github.com/owner/repo/pull/2" },
-  });
+const mockOctokit = github.getOctokit("fake-token");
 
+test("create pull request successfully", async () => {
   await _createPullRequest(
-    mockOctokitBase as any,
+    mockOctokit as any,
     "Release releases/v1.2.1",
     "main",
     "develop",
@@ -42,7 +21,7 @@ test("create pull request successfully", async () => {
     "repo",
   );
 
-  expect(mockOctokitBase.rest.pulls.create).toHaveBeenCalledWith({
+  expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
     owner: "owner",
     repo: "repo",
     title: "Release releases/v1.2.1",
@@ -52,17 +31,15 @@ test("create pull request successfully", async () => {
 });
 
 test("run executes the full workflow successfully", async () => {
-  (core.getInput as jest.Mock).mockImplementation((key: string) => {
-    const inputs: Record<string, string> = {
-      "github-token": "mock-token",
-      "base-branch": "main",
-      "target-branch": "develop",
-    };
-    return inputs[key] ?? "";
-  });
-
-  (github.context as any).repo = { owner: "owner", repo: "repo" };
-
+  require("@actions/github").__setMockPaginate([
+    { name: "releases/v1.0.0" },
+    { name: "releases/v1.2.0" },
+    { name: "releases/v1.2.1" },
+    { name: "releases/v1.1.0" },
+    { name: "releases/v1.1.1" },
+    { name: "main" },
+    { name: "develop" },
+  ]);
   await run();
 
   expect(core.getInput).toHaveBeenCalledWith("github-token", {
@@ -73,7 +50,7 @@ test("run executes the full workflow successfully", async () => {
     required: true,
   });
 
-  expect(mockOctokitBase.rest.pulls.create).toHaveBeenCalledWith({
+  expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
     owner: "owner",
     repo: "repo",
     title: "Main into Develop for Release v1.2.1",
@@ -83,24 +60,13 @@ test("run executes the full workflow successfully", async () => {
 });
 
 test("Run does not create PR if one already exists", async () => {
-  (core.getInput as jest.Mock).mockImplementation((key: string) => {
-    const inputs: Record<string, string> = {
-      "github-token": "mock-token",
-      "base-branch": "main",
-      "target-branch": "develop",
-    };
-    return inputs[key] ?? "";
-  });
-
-  (github.context as any).repo = { owner: "owner", repo: "repo" };
-
-  mockOctokitBase.rest.pulls.list.mockResolvedValue({
-    data: [{ html_url: "https://github.com/owner/repo/pull/1" }],
-  });
+  require("@actions/github").__setMockPullsList([
+    { html_url: "https://github.com/owner/repo/pull/1" },
+  ]);
 
   await run();
 
-  expect(mockOctokitBase.rest.pulls.create).not.toHaveBeenCalledWith({
+  expect(mockOctokit.rest.pulls.create).not.toHaveBeenCalledWith({
     owner: "owner",
     repo: "repo",
     title: "Main into Develop for Release v999.9.9",
@@ -110,12 +76,12 @@ test("Run does not create PR if one already exists", async () => {
 });
 
 test("checkExistingPr fails when an open PR already exists", async () => {
-  mockOctokitBase.rest.pulls.list.mockResolvedValue({
-    data: [{ html_url: "https://github.com/owner/repo/pull/1" }],
-  });
+  require("@actions/github").__setMockPullsList([
+    { html_url: "https://github.com/owner/repo/pull/1" },
+  ]);
 
   const result = await _checkExistingPr(
-    mockOctokitBase as any,
+    mockOctokit as any,
     "owner",
     "repo",
     "develop",
@@ -125,10 +91,10 @@ test("checkExistingPr fails when an open PR already exists", async () => {
 });
 
 test("checkExistingPr returns null when no open PR exists", async () => {
-  mockOctokitBase.rest.pulls.list.mockResolvedValue({ data: [] });
+  require("@actions/github").__setMockPullsList([]);
 
   const result = await _checkExistingPr(
-    mockOctokitBase as any,
+    mockOctokit as any,
     "owner",
     "repo",
     "develop",
