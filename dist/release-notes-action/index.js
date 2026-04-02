@@ -32225,7 +32225,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body, dra
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: false,
+        draft: draft,
         prerelease: false,
         generate_release_notes: false,
         headers: {
@@ -32282,12 +32282,11 @@ function publishDraftRelease(octokit, owner, repo, releaseId) {
 }
 async function publishLatestRelease(octokit, owner, repo) {
     console.log("Publishing latest release...");
-    const latestTag = await (0, git_utils_1.getLatestReleaseTag)(octokit, owner, repo);
-    const releaseExistsId = await releaseExists(octokit, owner, repo, latestTag);
+    const releaseExistsId = await (0, git_utils_1.getLatestDraftRelease)(octokit, owner, repo);
     if (releaseExistsId) {
-        console.log(`Latest release with tag ${latestTag} already exists with id ${releaseExistsId}. Updating it to publish...`);
+        console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
         await publishDraftRelease(octokit, owner, repo, releaseExistsId);
-        console.log(`Published latest release with tag ${latestTag} and id ${releaseExistsId}`);
+        console.log(`Published latest release with id ${releaseExistsId}`);
         return releaseExistsId;
     }
     return;
@@ -32383,6 +32382,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
+exports.getLatestDraftRelease = getLatestDraftRelease;
 const core = __importStar(__nccwpck_require__(7484));
 /**
  *
@@ -32468,6 +32468,23 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
+}
+async function getLatestDraftRelease(octokit, owner, repo) {
+    console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+    const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
+        owner,
+        repo,
+        per_page: 100,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+    console.debug("Releases response:", releases);
+    const draftReleases = releases.filter((release) => release.draft);
+    console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
+    // sort draft releases by version number and return the id of the latest one
+    const sortedDraftReleases = draftReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
 }
 
 

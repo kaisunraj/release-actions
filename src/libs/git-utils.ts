@@ -115,3 +115,28 @@ export function getTagFromBranchName(
   }
   return match[1];
 }
+
+
+export async function getLatestDraftRelease(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+): Promise<number | undefined> {
+  console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+  const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
+    owner,
+    repo,
+    per_page: 100,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+  console.debug("Releases response:", releases);
+  const draftReleases = releases.filter((release: { draft: boolean }) => release.draft);
+  console.log("Found draft releases:", draftReleases.map((r: { tag_name: string }) => r.tag_name));
+  // sort draft releases by version number and return the id of the latest one
+  const sortedDraftReleases = draftReleases.sort((a: { tag_name: string }, b: { tag_name: string }) =>
+    sortReleaseVersions(a.tag_name, b.tag_name),
+  );
+  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
+}

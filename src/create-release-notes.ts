@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { exec } from "node:child_process";
-import { getLatestReleaseTag, getTagFromBranchName } from "./libs/git-utils";
+import { getLatestDraftRelease, getTagFromBranchName } from "./libs/git-utils";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
@@ -119,7 +119,7 @@ async function createRelease(
       target_commitish: releaseBranch.replace("origin/", ""),
       name: tag,
       body: body,
-      draft: false,
+      draft: draft,
       prerelease: false,
       generate_release_notes: false,
       headers: {
@@ -228,18 +228,17 @@ async function publishLatestRelease(
   repo: string
 ): Promise<number | undefined> {
   console.log("Publishing latest release...");
-  const latestTag = await getLatestReleaseTag(
+  const releaseExistsId = await getLatestDraftRelease(
     octokit,
     owner,
     repo,
   );
-  const releaseExistsId = await releaseExists(octokit, owner, repo, latestTag!);
   if (releaseExistsId) {
     console.log(
-      `Latest release with tag ${latestTag} already exists with id ${releaseExistsId}. Updating it to publish...`,
+      `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
     );
     await publishDraftRelease(octokit, owner, repo, releaseExistsId);
-    console.log(`Published latest release with tag ${latestTag} and id ${releaseExistsId}`);
+    console.log(`Published latest release with id ${releaseExistsId}`);
     return releaseExistsId;
   }
   return;

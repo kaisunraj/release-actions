@@ -32247,6 +32247,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
+exports.getLatestDraftRelease = getLatestDraftRelease;
 const core = __importStar(__nccwpck_require__(7484));
 /**
  *
@@ -32332,6 +32333,23 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
+}
+async function getLatestDraftRelease(octokit, owner, repo) {
+    console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+    const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
+        owner,
+        repo,
+        per_page: 100,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+    console.debug("Releases response:", releases);
+    const draftReleases = releases.filter((release) => release.draft);
+    console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
+    // sort draft releases by version number and return the id of the latest one
+    const sortedDraftReleases = draftReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
 }
 
 
