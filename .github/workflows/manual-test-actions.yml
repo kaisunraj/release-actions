@@ -91,9 +91,6 @@ jobs:
       - name: Wait to allow manual verification
         run: sleep 30 # Wait for 30 seconds to allow manual verification of the created PR and release notes
 
-      - name: Delete release branch
-        run: git branch -D ${{ needs.manual-tests.outputs.release-branch }}
-
       - name: Close created PR
         run: |
           curl -X PATCH \
