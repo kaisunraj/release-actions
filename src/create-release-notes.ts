@@ -16,7 +16,14 @@ function filterJiraTickets(commitMessages: string[]) {
   commitMessages.forEach((message) => {
     const matches = message.match(jiraTicketPattern);
     if (matches) {
-      matches.forEach((ticket) => tickets.add(ticket));
+      for (const ticket of matches) {
+        const ticketNos = ticket.match(/\d+/);
+        ticketNos
+          ?.filter((ticketNo) => parseInt(ticketNo) !== 0)
+          .forEach((ticketNo) => {
+            tickets.add(ticket);
+          });
+      }
     }
   });
   return Array.from(tickets);
