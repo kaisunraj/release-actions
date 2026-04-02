@@ -30,6 +30,7 @@ jobs:
         id: generate_branch_name
         run: |
           export RELEASE_BRANCH="releases/v$(date +%s)"
+          git branch $RELEASE_BRANCH
           echo "release-branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Create files and commits
@@ -61,6 +62,9 @@ jobs:
           github-token: ${{ secrets.PAT }}
           generate-github-release: "true"
 
+      - name: Sleep to allow verification of draft release
+        run: sleep 15 # Sleep for 15 seconds to allow manual verification of the created draft release
+
       - name: Run create-release-notes action with same base and target branch
         id: create_release_notes_same_branch
         uses: ./create-release-notes
@@ -87,6 +91,9 @@ jobs:
     steps:
       - name: Wait to allow manual verification
         run: sleep 30 # Wait for 30 seconds to allow manual verification of the created PR and release notes
+
+      - name: Delete release branch
+        run: git branch -D ${{ needs.manual-tests.outputs.release-branch }}
 
       - name: Close created PR
         run: |

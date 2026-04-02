@@ -256,7 +256,7 @@ async function generateReleaseNotes(
     `generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`,
   );
   // If branch base branch and release branch are the same, publish latest release
-  if (baseBranch === releaseBranch || releaseBranch === `origin/${baseBranch}`) {
+  if (baseBranch.replace(/^origin\//, "") === releaseBranch.replace(/^origin\//, "")) {
     const result = await publishLatestRelease(octokit, owner, repo);
     if (result) {
       return result;
