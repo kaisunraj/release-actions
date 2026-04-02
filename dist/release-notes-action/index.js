@@ -32391,7 +32391,7 @@ const core = __importStar(__nccwpck_require__(7484));
  */
 function extractVersionParts(version) {
     return version
-        .replace(/^v/, "")
+        .replace(/^(releases\/)?v/, "")
         .split(/[\.-]/)
         .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }

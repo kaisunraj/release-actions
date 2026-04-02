@@ -8,7 +8,7 @@ import { GitHub } from "@actions/github/lib/utils";
  */
 function extractVersionParts(version: string): (string | number)[] {
   return version
-    .replace(/^v/, "")
+    .replace(/^(releases\/)?v/, "")
     .split(/[\.-]/)
     .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }
@@ -36,7 +36,7 @@ export function sortReleaseVersions(a: string, b: string): number {
 
     if (partA === 0 || partB === 0) {
       // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
-      return partA === 0 ? -1 : 1;
+      return partA === 0 ? - 1 : 1;
     }
 
 
