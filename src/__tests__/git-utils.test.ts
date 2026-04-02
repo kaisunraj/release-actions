@@ -1,4 +1,5 @@
 import {
+  getLatestDraftRelease,
   getLatestReleaseTag,
   getTagFromBranchName,
   sortReleaseVersions,
@@ -15,28 +16,49 @@ beforeEach(() => {
 
 const mockOctokit = github.getOctokit("fake-token");
 
+describe("sortReleaseVersions", () => {
+  it.each([
+    ["v1.2.3", "v1.2.10", -7],
+    ["v1.2.3", "v1.2.3-beta", -1],
+    ["v1.2.3-alpha", "v1.2.3-beta", -1],
+    ["v1.2", "v1.2.0", 0],
+    ["v1.10.0", "v1.2.10", 8],
+    ["v1785949032", "v1.2.3", 1785949031],
+  ])(
+    "compares version '%s' and '%s' and returns %d",
+    (versionA, versionB, expected) => {
+      const result = sortReleaseVersions(versionA, versionB);
+      expect(result).toBe(expected);
+    },
+  );
+});
+
 test("sortReleaseVersions correctly sorts version strings", () => {
   const versions = [
-    "v1.2.3",
-    "v1.2",
-    "v1.10.0",
-    "v1.2.10",
-    "v2",
-    "v1.2.3-beta",
-    "v1.2.3-alpha",
-    "v2",
-    "v1.2.3-rc.1",
+    "releases/v1.2.3",
+    "releases/v1.2",
+    "releases/v1.10.0",
+    "releases/v1.2.10",
+    "releases/v2",
+    "releases/v1.2.3-beta",
+    "releases/v1785949032",
+    "releases/v1.2.3-alpha",
+    "releases/v2",
+    "releases/v2.1.0",
+    "releases/v1.2.3-rc.1",
   ];
   const expectedLinks = [
-    "v1.2",
-    "v1.2.3",
-    "v1.2.3-alpha",
-    "v1.2.3-beta",
-    "v1.2.3-rc.1",
-    "v1.2.10",
-    "v1.10.0",
-    "v2",
-    "v2",
+    "releases/v1.2",
+    "releases/v1.2.3",
+    "releases/v1.2.3-alpha",
+    "releases/v1.2.3-beta",
+    "releases/v1.2.3-rc.1",
+    "releases/v1.2.10",
+    "releases/v1.10.0",
+    "releases/v2",
+    "releases/v2",
+    "releases/v2.1.0",
+    "releases/v1785949032",
   ];
   const result = versions.sort(sortReleaseVersions);
   expect(result).toEqual(expectedLinks);
@@ -101,4 +123,20 @@ describe("getTagFromBranchName returns null for non-matching branch names", () =
       );
     },
   );
+});
+
+test("getLatestDraftRelease returns the latest draft release ID", async () => {
+  const mockReleases = [
+    { id: 1, draft: false, tag_name: "v1.0.0" },
+    { id: 2, draft: true, tag_name: "v1.1.0" },
+    { id: 3, draft: true, tag_name: "v1.2.0" },
+    { id: 4, draft: false, tag_name: "v1.3.0" },
+  ];
+  require("@actions/github").__setMockPaginate(mockReleases);
+  const latestDraftReleaseId = await getLatestDraftRelease(
+    mockOctokit as any,
+    "owner",
+    "repo",
+  );
+  expect(latestDraftReleaseId).toBe(3);
 });

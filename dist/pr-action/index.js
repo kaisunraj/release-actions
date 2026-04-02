@@ -32247,6 +32247,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
+exports.getLatestDraftRelease = getLatestDraftRelease;
 const core = __importStar(__nccwpck_require__(7484));
 /**
  *
@@ -32255,6 +32256,7 @@ const core = __importStar(__nccwpck_require__(7484));
  */
 function extractVersionParts(version) {
     return version
+        .replace(/^(releases\/)?v/, "")
         .split(/[\.-]/)
         .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }
@@ -32272,13 +32274,13 @@ function sortReleaseVersions(a, b) {
         const partB = partsB[i] || 0;
         if (partA === partB)
             continue;
-        if (partA === 0 || partB === 0) {
-            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
-            return partA === 0 ? -1 : 1;
-        }
         // If both parts are numbers, compare numerically
         if (typeof partA === "number" && typeof partB === "number") {
             return partA - partB;
+        }
+        if (partA === 0 || partB === 0) {
+            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
+            return partA === 0 ? -1 : 1;
         }
         // Otherwise, compare as strings
         return String(partA).localeCompare(String(partB));
@@ -32300,8 +32302,8 @@ async function getLatestReleaseTag(octokit, owner, repo) {
         },
     });
     console.debug("Branches response:", branches);
-    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
-    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name));
+    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
+    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
         return undefined;
@@ -32331,6 +32333,27 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
+}
+async function getLatestDraftRelease(octokit, owner, repo) {
+    console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+    const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
+        owner,
+        repo,
+        per_page: 100,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+    if (!releases) {
+        console.log("No releases found for repository.");
+        return -1;
+    }
+    console.debug("Releases response:", releases);
+    const draftReleases = releases.filter((release) => release.draft);
+    console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
+    // sort draft releases by version number and return the id of the latest one
+    const sortedDraftReleases = draftReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
 }
 
 

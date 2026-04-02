@@ -12,7 +12,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Exit if manual test release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const release = context.payload.release;
+            if (release.tag_name.match(/^releases\/v\d{10}$/)) {
+              console.log("This is a manual test release. Exiting without updating major version tag.");
+              process.exit(0);
+            }
 
       - name: Get major version num and update tag
         run: |

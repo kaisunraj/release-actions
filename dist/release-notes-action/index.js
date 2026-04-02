@@ -32141,6 +32141,7 @@ exports._releaseExists = releaseExists;
 exports._createRelease = createRelease;
 exports._listBranches = listBranches;
 exports._createGithubRelease = createGithubRelease;
+exports._publishDraftRelease = publishDraftRelease;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
 exports._generateReleaseNotes = generateReleaseNotes;
 const core = __importStar(__nccwpck_require__(7484));
@@ -32206,16 +32207,18 @@ async function releaseExists(octokit, owner, repo, tag) {
                 "X-GitHub-Api-Version": "2026-03-10",
             },
         });
+        console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
         return response.data.id;
     }
     catch (error) {
         if (error.status === 404) {
+            console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
             return false;
         }
         throw error;
     }
 }
-async function createRelease(octokit, owner, repo, tag, releaseBranch, body) {
+async function createRelease(octokit, owner, repo, tag, releaseBranch, body, draft = true) {
     const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
         owner,
         repo,
@@ -32223,7 +32226,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body) {
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: false,
+        draft: draft,
         prerelease: false,
         generate_release_notes: false,
         headers: {
@@ -32232,7 +32235,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body) {
     });
     return response.data.id;
 }
-async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body) {
+async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body, draft = true) {
     await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
         owner: owner,
         repo: repo,
@@ -32241,7 +32244,7 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: false,
+        draft: draft,
         prerelease: false,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
@@ -32254,21 +32257,56 @@ function generateReleaseNotesContent(links) {
     }
     return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
-async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent) {
+async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft = true) {
     const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
     if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent);
+        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, draft);
         console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
         return releaseExistsId;
     }
     else {
-        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);
+        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft);
         console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
         return releaseId;
     }
 }
+function publishDraftRelease(octokit, owner, repo, releaseId) {
+    return octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
+        owner: owner,
+        repo: repo,
+        release_id: releaseId,
+        draft: false,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+}
+async function publishLatestRelease(octokit, owner, repo) {
+    console.log("Publishing latest release...");
+    const releaseExistsId = await (0, git_utils_1.getLatestDraftRelease)(octokit, owner, repo);
+    if (releaseExistsId) {
+        console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
+        await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+        console.log(`Published latest release with id ${releaseExistsId}`);
+        return releaseExistsId;
+    }
+    return;
+}
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
+    // If branch base branch and release branch are the same, publish latest release
+    if (baseBranch.replace(/^origin\//, "") ===
+        releaseBranch.replace(/^origin\//, "")) {
+        console.log(`Base branch and release branch are the same (${baseBranch}). Publishing latest release instead of generating new release notes...`);
+        const result = await publishLatestRelease(octokit, owner, repo);
+        if (result === -1) {
+            console.log("No releases found to publish.");
+            return;
+        }
+        if (result) {
+            return result;
+        }
+    }
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
     listBranches();
     const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
@@ -32351,6 +32389,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
+exports.getLatestDraftRelease = getLatestDraftRelease;
 const core = __importStar(__nccwpck_require__(7484));
 /**
  *
@@ -32359,6 +32398,7 @@ const core = __importStar(__nccwpck_require__(7484));
  */
 function extractVersionParts(version) {
     return version
+        .replace(/^(releases\/)?v/, "")
         .split(/[\.-]/)
         .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }
@@ -32376,13 +32416,13 @@ function sortReleaseVersions(a, b) {
         const partB = partsB[i] || 0;
         if (partA === partB)
             continue;
-        if (partA === 0 || partB === 0) {
-            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
-            return partA === 0 ? -1 : 1;
-        }
         // If both parts are numbers, compare numerically
         if (typeof partA === "number" && typeof partB === "number") {
             return partA - partB;
+        }
+        if (partA === 0 || partB === 0) {
+            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
+            return partA === 0 ? -1 : 1;
         }
         // Otherwise, compare as strings
         return String(partA).localeCompare(String(partB));
@@ -32404,8 +32444,8 @@ async function getLatestReleaseTag(octokit, owner, repo) {
         },
     });
     console.debug("Branches response:", branches);
-    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
-    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name));
+    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
+    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
         return undefined;
@@ -32435,6 +32475,27 @@ function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:ori
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
+}
+async function getLatestDraftRelease(octokit, owner, repo) {
+    console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+    const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
+        owner,
+        repo,
+        per_page: 100,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+    if (!releases) {
+        console.log("No releases found for repository.");
+        return -1;
+    }
+    console.debug("Releases response:", releases);
+    const draftReleases = releases.filter((release) => release.draft);
+    console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
+    // sort draft releases by version number and return the id of the latest one
+    const sortedDraftReleases = draftReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
 }
 
 

@@ -41,7 +41,7 @@ jobs:
           git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing"
           echo "dummy content" > OVP5678.txt
           git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
-          git push origin HEAD:${{ steps.generate_branch_name.outputs.release-branch }}
+          git push origin ${{ steps.generate_branch_name.outputs.release-branch }}
 
       - name: Run create-pr action
         id: create_pr
@@ -55,8 +55,21 @@ jobs:
         id: create_release_notes
         uses: ./create-release-notes
         with:
-          base-branch: "origin/main"
-          release-branch: "origin/${{ steps.generate_branch_name.outputs.release-branch }}"
+          base-branch: "main"
+          release-branch: "${{ steps.generate_branch_name.outputs.release-branch }}"
+          confluence-space: "kaisunraj"
+          github-token: ${{ secrets.PAT }}
+          generate-github-release: "true"
+
+      - name: Sleep to allow verification of draft release
+        run: sleep 15 # Sleep for 15 seconds to allow manual verification of the created draft release
+
+      - name: Run create-release-notes action with same base and target branch
+        id: create_release_notes_same_branch
+        uses: ./create-release-notes
+        with:
+          base-branch: "main"
+          release-branch: "main"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
           generate-github-release: "true"
@@ -65,8 +78,8 @@ jobs:
         id: create_release_notes_print
         uses: ./create-release-notes
         with:
-          base-branch: "origin/main"
-          release-branch: "origin/${{ steps.generate_branch_name.outputs.release-branch }}"
+          base-branch: "main"
+          release-branch: "${{ steps.generate_branch_name.outputs.release-branch }}"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
           generate-github-release: "false"
