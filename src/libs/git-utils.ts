@@ -66,9 +66,9 @@ export async function getLatestReleaseTag(
     },
   });
   console.debug("Branches response:", branches);
-  // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
+  // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
   const releaseBranches = branches.filter((branch: { name: string }) =>
-    /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name),
+    /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name),
   );
 
   if (releaseBranches.length === 0) {

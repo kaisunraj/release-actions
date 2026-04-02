@@ -30,7 +30,6 @@ jobs:
         id: generate_branch_name
         run: |
           export RELEASE_BRANCH="releases/v$(date +%s)"
-          git branch $RELEASE_BRANCH
           echo "release-branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Create files and commits
