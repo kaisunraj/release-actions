@@ -32175,11 +32175,11 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
         releaseBranch.replace(/^origin\//, "")) {
         console.log(`Base branch and release branch are the same (${baseBranch}). Publishing latest release instead of generating new release notes...`);
         const result = await (0, git_utils_1.publishLatestRelease)(octokit, owner, repo);
-        if (result === -1) {
+        if (!result) {
             console.log("No releases found to publish.");
             return;
         }
-        if (result) {
+        else {
             return result;
         }
     }
@@ -32381,13 +32381,13 @@ async function getLatestDraftRelease(octokit, owner, repo) {
     });
     if (!releases) {
         console.log("No releases found for repository.");
-        return -1;
+        return;
     }
     console.debug("Releases response:", releases);
     const draftReleases = releases.filter((release) => release.draft);
     if (draftReleases.length === 0) {
         console.log("No draft releases found for repository.");
-        return -1;
+        return;
     }
     console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
     // sort draft releases by version number and return the id of the latest one

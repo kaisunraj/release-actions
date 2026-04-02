@@ -63,11 +63,10 @@ async function generateReleaseNotes(
       `Base branch and release branch are the same (${baseBranch}). Publishing latest release instead of generating new release notes...`,
     );
     const result = await publishLatestRelease(octokit, owner, repo);
-    if (result === -1) {
+    if (!result) {
       console.log("No releases found to publish.");
       return;
-    }
-    if (result) {
+    } else {
       return result;
     }
   }

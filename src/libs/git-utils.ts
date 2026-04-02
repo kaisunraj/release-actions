@@ -142,7 +142,7 @@ export async function getLatestDraftRelease(
   });
   if (!releases) {
     console.log("No releases found for repository.");
-    return -1;
+    return;
   }
   console.debug("Releases response:", releases);
   const draftReleases = releases.filter(
@@ -150,7 +150,7 @@ export async function getLatestDraftRelease(
   );
   if (draftReleases.length === 0) {
     console.log("No draft releases found for repository.");
-    return -1;
+    return;
   }
   console.log(
     "Found draft releases:",

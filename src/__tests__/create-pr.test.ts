@@ -48,7 +48,9 @@ describe("run", () => {
     expect(core.getInput).toHaveBeenCalledWith("github-token", {
       required: true,
     });
-    expect(core.getInput).toHaveBeenCalledWith("base-branch", { required: true });
+    expect(core.getInput).toHaveBeenCalledWith("base-branch", {
+      required: true,
+    });
     expect(core.getInput).toHaveBeenCalledWith("target-branch", {
       required: true,
     });

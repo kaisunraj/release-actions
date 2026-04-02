@@ -132,6 +132,31 @@ describe("_generateReleaseNotes", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("returns the latest draft release id and publishes it when base and release branches are the same", async () => {
+    require("@actions/github").__setMockPaginate([
+      { tag_name: "v1.0.0", id: 789, draft: false },
+      { tag_name: "v1.0.3", id: 792, draft: true },
+      { tag_name: "v1.0.2", id: 791, draft: true },
+      { tag_name: "v1.0.1", id: 790, draft: false },
+    ]);
+    mockOctokit.request.mockResolvedValueOnce({ data: { id: 792 } });
+
+    const result = await _generateReleaseNotes(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "confluenceSpace",
+      "main",
+      "main", // baseBranch and releaseBranch are the same
+    );
+
+    expect(result).toBe(792);
+    expect(mockOctokit.request).toHaveBeenCalledWith(
+      "PATCH /repos/{owner}/{repo}/releases/{release_id}",
+      expect.objectContaining({ release_id: 792, draft: false }),
+    );
+  });
+
   it("does not call createGithubRelease and writes a job summary when createGithubReleaseTag is false", async () => {
     mockExec.mockImplementation((command, callback) => {
       callback(null, "OVP-1: one\nOVP-2: two\n", "");
@@ -157,10 +182,12 @@ describe("_generateReleaseNotes", () => {
     ]);
   });
 
-  it("resolves with undefined when the base and release branches are the same", async () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "OVP-1: one\nOVP-2: two\n", "");
-    });
+  it("creates the latest release branch as a draft release when base and release branches are the same", async () => {
+    require("@actions/github").__setMockPaginate([
+      { tag_name: "v1.0.0", id: 789, draft: false },
+      { tag_name: "v1.0.1", id: 790, draft: false },
+    ]);
+
     const result = await _generateReleaseNotes(
       mockOctokit as any,
       "owner",

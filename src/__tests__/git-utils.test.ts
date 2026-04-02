@@ -25,6 +25,7 @@ import {
   createRelease,
   createGithubRelease,
   publishDraftRelease,
+  publishLatestRelease,
 } from "../libs/git-utils";
 
 beforeEach(() => {
@@ -137,13 +138,10 @@ describe("getTagFromBranchName", () => {
     ["releases/v1", "v1"],
     ["origin/releases/v1.2.1", "v1.2.1"],
     ["origin/develop", "develop"],
-  ])(
-    "extracts tag from branch name '%s'",
-    (branchName, expectedTag) => {
-      const tag = getTagFromBranchName(branchName);
-      expect(tag).toBe(expectedTag);
-    },
-  );
+  ])("extracts tag from branch name '%s'", (branchName, expectedTag) => {
+    const tag = getTagFromBranchName(branchName);
+    expect(tag).toBe(expectedTag);
+  });
 
   it.each(["main", "feature/OVP-1234"])(
     "throws when branch name '%s' does not match the release branch pattern",
@@ -170,6 +168,29 @@ describe("getLatestDraftRelease", () => {
       "repo",
     );
     expect(latestDraftReleaseId).toBe(3);
+  });
+
+  it("returns undefined when no releases are found", async () => {
+    require("@actions/github").__setMockPaginate(undefined);
+    const latestDraftReleaseId = await getLatestDraftRelease(
+      mockOctokit as any,
+      "owner",
+      "repo",
+    );
+    expect(latestDraftReleaseId).toBeUndefined();
+  });
+
+  it("returns undefined if no draft releases are found", async () => {
+    require("@actions/github").__setMockPaginate([
+      { tag_name: "v1.0.0", id: 789, draft: false },
+      { tag_name: "v1.0.1", id: 790, draft: false },
+    ]);
+    const latestDraftReleaseId = await getLatestDraftRelease(
+      mockOctokit as any,
+      "owner",
+      "repo",
+    );
+    expect(latestDraftReleaseId).toBeUndefined();
   });
 });
 
@@ -334,5 +355,37 @@ describe("createGithubRelease", () => {
       "Release notes content",
     );
     expect(result).toBe(123);
+  });
+});
+
+describe("publishLatestRelease", () => {
+  it("returns undefined when no draft releases are found", async () => {
+    require("@actions/github").__setMockPaginate([
+      { tag_name: "v1.0.0", id: 789, draft: false },
+      { tag_name: "v1.0.1", id: 790, draft: false },
+    ]);
+    const result = await publishLatestRelease(
+      mockOctokit as any,
+      "owner",
+      "repo",
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it("publishes the latest draft release and returns its id", async () => {
+    require("@actions/github").__setMockPaginate([
+      { tag_name: "v1.0.0", id: 789, draft: false },
+      { tag_name: "v1.0.3", id: 792, draft: true },
+      { tag_name: "v1.0.2", id: 791, draft: true },
+      { tag_name: "v1.0.1", id: 790, draft: false },
+    ]);
+    mockOctokit.request.mockResolvedValueOnce({ data: { id: 792 } });
+
+    const result = await publishLatestRelease(
+      mockOctokit as any,
+      "owner",
+      "repo",
+    );
+    expect(result).toEqual(792);
   });
 });
