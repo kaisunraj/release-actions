@@ -32206,10 +32206,12 @@ async function releaseExists(octokit, owner, repo, tag) {
                 "X-GitHub-Api-Version": "2026-03-10",
             },
         });
+        console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
         return response.data.id;
     }
     catch (error) {
         if (error.status === 404) {
+            console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
             return false;
         }
         throw error;
@@ -32293,7 +32295,7 @@ async function publishLatestRelease(octokit, owner, repo) {
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
     // If branch base branch and release branch are the same, publish latest release
-    if (baseBranch === releaseBranch || releaseBranch === `origin/${baseBranch}`) {
+    if (baseBranch.replace(/^origin\//, "") === releaseBranch.replace(/^origin\//, "")) {
         const result = await publishLatestRelease(octokit, owner, repo);
         if (result) {
             return result;
@@ -32434,8 +32436,8 @@ async function getLatestReleaseTag(octokit, owner, repo) {
         },
     });
     console.debug("Branches response:", branches);
-    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
-    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name));
+    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
+    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
         return undefined;

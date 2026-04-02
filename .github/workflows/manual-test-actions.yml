@@ -41,7 +41,7 @@ jobs:
           git add OVP1234.txt && git commit -m "OVP-1234: Add dummy file for testing"
           echo "dummy content" > OVP5678.txt
           git add OVP5678.txt && git commit -m "OVP-5678: Add another dummy file for testing"
-          git push origin HEAD:${{ steps.generate_branch_name.outputs.release-branch }}
+          git push origin ${{ steps.generate_branch_name.outputs.release-branch }}
 
       - name: Run create-pr action
         id: create_pr

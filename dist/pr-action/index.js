@@ -32300,8 +32300,8 @@ async function getLatestReleaseTag(octokit, owner, repo) {
         },
     });
     console.debug("Branches response:", branches);
-    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.*"
-    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+\.\d+\.\d+$/.test(branch.name));
+    // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
+    const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
         return undefined;

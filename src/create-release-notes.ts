@@ -90,9 +90,11 @@ async function releaseExists(
         },
       },
     );
+    console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
     return response.data.id;
   } catch (error: any) {
     if (error.status === 404) {
+      console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
       return false;
     }
     throw error;
