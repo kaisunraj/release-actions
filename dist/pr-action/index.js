@@ -32255,6 +32255,7 @@ const core = __importStar(__nccwpck_require__(7484));
  */
 function extractVersionParts(version) {
     return version
+        .replace(/^v/, "")
         .split(/[\.-]/)
         .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }
@@ -32272,13 +32273,13 @@ function sortReleaseVersions(a, b) {
         const partB = partsB[i] || 0;
         if (partA === partB)
             continue;
-        if (partA === 0 || partB === 0) {
-            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
-            return partA === 0 ? -1 : 1;
-        }
         // If both parts are numbers, compare numerically
         if (typeof partA === "number" && typeof partB === "number") {
             return partA - partB;
+        }
+        if (partA === 0 || partB === 0) {
+            // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
+            return partA === 0 ? -1 : 1;
         }
         // Otherwise, compare as strings
         return String(partA).localeCompare(String(partB));

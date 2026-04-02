@@ -8,6 +8,7 @@ import { GitHub } from "@actions/github/lib/utils";
  */
 function extractVersionParts(version: string): (string | number)[] {
   return version
+    .replace(/^v/, "")
     .split(/[\.-]/)
     .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 }
@@ -25,18 +26,19 @@ export function sortReleaseVersions(a: string, b: string): number {
   for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
     const partA = partsA[i] || 0;
     const partB = partsB[i] || 0;
-
+    
     if (partA === partB) continue;
+
+    // If both parts are numbers, compare numerically
+    if (typeof partA === "number" && typeof partB === "number") {
+      return partA - partB;
+    }
 
     if (partA === 0 || partB === 0) {
       // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
       return partA === 0 ? -1 : 1;
     }
 
-    // If both parts are numbers, compare numerically
-    if (typeof partA === "number" && typeof partB === "number") {
-      return partA - partB;
-    }
 
     // Otherwise, compare as strings
     return String(partA).localeCompare(String(partB));

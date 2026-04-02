@@ -23,6 +23,7 @@ test("sortReleaseVersions correctly sorts version strings", () => {
     "v1.2.10",
     "v2",
     "v1.2.3-beta",
+    "v1785949032",
     "v1.2.3-alpha",
     "v2",
     "v1.2.3-rc.1",
@@ -37,6 +38,7 @@ test("sortReleaseVersions correctly sorts version strings", () => {
     "v1.10.0",
     "v2",
     "v2",
+    "v1785949032",
   ];
   const result = versions.sort(sortReleaseVersions);
   expect(result).toEqual(expectedLinks);
