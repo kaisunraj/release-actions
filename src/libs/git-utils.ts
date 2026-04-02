@@ -1,12 +1,14 @@
 import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
+import { exec } from "child_process";
+import { Octokit } from "../create-release-notes";
 
 /**
  *
  * @param version - The version string to extract parts from.
  * @returns An array of version parts, where numeric parts are converted to numbers and non-numeric parts remain as strings.
  */
-function extractVersionParts(version: string): (string | number)[] {
+export function extractVersionParts(version: string): (string | number)[] {
   return version
     .replace(/^(releases\/)?v/, "")
     .split(/[\.-]/)
@@ -115,6 +117,13 @@ export function getTagFromBranchName(
   return match[1];
 }
 
+/**
+ * gets the latest draft release for a given repository.
+ * @param octokit
+ * @param owner
+ * @param repo
+ * @returns Returns the release id if found or -1 if no draft releases found.
+ */
 export async function getLatestDraftRelease(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
@@ -139,6 +148,10 @@ export async function getLatestDraftRelease(
   const draftReleases = releases.filter(
     (release: { draft: boolean }) => release.draft,
   );
+  if (draftReleases.length === 0) {
+    console.log("No draft releases found for repository.");
+    return -1;
+  }
   console.log(
     "Found draft releases:",
     draftReleases.map((r: { tag_name: string }) => r.tag_name),
@@ -148,5 +161,249 @@ export async function getLatestDraftRelease(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
+  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+}
+
+/**
+ * Lists all branches in the current git repository by executing "git branch -a" command.
+ * @returns A promise that resolves to an array of branch names.
+ * @throws An error if the git command fails or returns an error output.
+ */
+export function listBranches(): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    exec(
+      "git branch -a",
+      (error: Error | null, stdout: string, stderr: string) => {
+        if (error) {
+          return reject(new Error(`Error listing branches: ${error.message}`));
+        }
+        if (stderr) {
+          return reject(new Error(`Error output: ${stderr}`));
+        }
+        const branches = stdout
+          .split("\n")
+          .map((b) => b.trim())
+          .filter(Boolean);
+        console.debug("Branches:", branches);
+        resolve(branches);
+      },
+    );
+  });
+}
+
+/**
+ * Gets the commit messages between two branches by executing "git log baseBranch..releaseBranch --pretty=format:%s" command.
+ * @returns
+ */
+export function getCommitMessages(
+  baseBranch: string,
+  releaseBranch: string,
+): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    exec(
+      `git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`,
+      (error: Error | null, stdout: string, stderr: string) => {
+        if (error) {
+          return reject(
+            new Error(`Error fetching commit messages: ${error.message}`),
+          );
+        }
+        if (stderr) {
+          return reject(new Error(`Error output: ${stderr}`));
+        }
+        const commitMessages = stdout
+          .split("\n")
+          .map((m) => m.trim())
+          .filter(Boolean);
+
+        resolve(commitMessages);
+      },
+    );
+  });
+}
+
+/**
+ * Checks if a release with the given tag already exists in the repository.
+ * @param tag - The release tag to check for existence (e.g. "v1.2.3").
+ * @returns Returns the release id if found or false if no release with the given tag exists.
+ */
+export async function releaseExists(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  tag: string,
+): Promise<number | false> {
+  try {
+    const response = await octokit.request(
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      {
+        owner,
+        repo,
+        tag,
+        headers: {
+          "X-GitHub-Api-Version": "2026-03-10",
+        },
+      },
+    );
+    console.log(
+      `Release with tag ${tag} already exists with id ${response.data.id}`,
+    );
+    return response.data.id;
+  } catch (error: any) {
+    if (error.status === 404) {
+      console.log(
+        `Release with tag ${tag} does not exist. Will create a new one.`,
+      );
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Creates a release in the specified repository with the given tag, target branch, and release notes content. If a release with the same tag already exists, it will be updated instead.
+ * @param tag - The release tag to create (e.g. "v1.2.3").
+ * @param releaseBranch - The target branch for the release (e.g. "releases/v1.2.3").
+ * @param body - The release notes content to include in the release description.
+ * @param draft - Whether to create the release as a draft (default: true). If false, the release will be published immediately.
+ * @returns The ID of the created release.
+ */
+export async function createRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  tag: string,
+  releaseBranch: string,
+  body: string,
+  draft: boolean = true,
+) {
+  const response = await octokit.request(
+    "POST /repos/{owner}/{repo}/releases",
+    {
+      owner,
+      repo,
+      tag_name: tag,
+      target_commitish: releaseBranch.replace("origin/", ""),
+      name: tag,
+      body: body,
+      draft: draft,
+      prerelease: false,
+      generate_release_notes: false,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    },
+  );
+  return response.data.id;
+}
+
+/**
+ * Updates an existing release in the specified repository with the given tag, target branch, and release notes content. The release to update is identified by the provided release ID.
+ * @param releaseId - The ID of the release to update.
+ * @param tag - The release tag to update (e.g. "v1.2.3").
+ * @param releaseBranch - The target branch for the release (e.g. "releases/v1.2.3").
+ * @param body - The release notes content to include in the release description.
+ * @param draft - Whether to keep the release as a draft (default: true). If false, the release will be published immediately.
+ */
+export async function updateRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseId: number,
+  tag: string,
+  releaseBranch: string,
+  body: string,
+  draft: boolean = true,
+) {
+  await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
+    owner: owner,
+    repo: repo,
+    release_id: releaseId,
+    tag_name: tag,
+    target_commitish: releaseBranch.replace("origin/", ""),
+    name: tag,
+    body: body,
+    draft: draft,
+    prerelease: false,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+}
+
+export async function createGithubRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseTag: string,
+  releaseBranch: string,
+  releaseNotesContent: string,
+  draft: boolean = true,
+): Promise<number> {
+  const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
+  if (releaseExistsId) {
+    await updateRelease(
+      octokit,
+      owner,
+      repo,
+      releaseExistsId,
+      releaseTag,
+      releaseBranch,
+      releaseNotesContent,
+      draft,
+    );
+    console.log(
+      `Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`,
+    );
+    return releaseExistsId;
+  } else {
+    const releaseId = await createRelease(
+      octokit,
+      owner,
+      repo,
+      releaseTag,
+      releaseBranch,
+      releaseNotesContent,
+      draft,
+    );
+    console.log(
+      `Created new release with tag ${releaseTag} and id ${releaseId}`,
+    );
+    return releaseId;
+  }
+}
+
+export async function publishDraftRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseId: number,
+) {
+  return octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
+    owner: owner,
+    repo: repo,
+    release_id: releaseId,
+    draft: false,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+}
+
+export async function publishLatestRelease(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<number | undefined> {
+  console.log("Publishing latest release...");
+  const releaseExistsId = await getLatestDraftRelease(octokit, owner, repo);
+  if (releaseExistsId) {
+    console.log(
+      `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
+    );
+    await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+    console.log(`Published latest release with id ${releaseExistsId}`);
+    return releaseExistsId;
+  }
+  return;
 }

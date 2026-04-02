@@ -11,94 +11,100 @@ beforeEach(() => {
 
 const mockOctokit = github.getOctokit("fake-token");
 
-test("create pull request successfully", async () => {
-  await _createPullRequest(
-    mockOctokit as any,
-    "Release releases/v1.2.1",
-    "main",
-    "develop",
-    "owner",
-    "repo",
-  );
+describe("_createPullRequest", () => {
+  it("calls pulls.create with the correct arguments", async () => {
+    await _createPullRequest(
+      mockOctokit as any,
+      "Release releases/v1.2.1",
+      "main",
+      "develop",
+      "owner",
+      "repo",
+    );
 
-  expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
-    owner: "owner",
-    repo: "repo",
-    title: "Release releases/v1.2.1",
-    head: "develop",
-    base: "main",
+    expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
+      owner: "owner",
+      repo: "repo",
+      title: "Release releases/v1.2.1",
+      head: "develop",
+      base: "main",
+    });
   });
 });
 
-test("run executes the full workflow successfully", async () => {
-  require("@actions/github").__setMockPaginate([
-    { name: "releases/v1.0.0" },
-    { name: "releases/v1.2.0" },
-    { name: "releases/v1.2.1" },
-    { name: "releases/v1.1.0" },
-    { name: "releases/v1.1.1" },
-    { name: "main" },
-    { name: "develop" },
-  ]);
-  await run();
+describe("run", () => {
+  it("executes the full workflow and creates a PR with the correct title", async () => {
+    require("@actions/github").__setMockPaginate([
+      { name: "releases/v1.0.0" },
+      { name: "releases/v1.2.0" },
+      { name: "releases/v1.2.1" },
+      { name: "releases/v1.1.0" },
+      { name: "releases/v1.1.1" },
+      { name: "main" },
+      { name: "develop" },
+    ]);
+    await run();
 
-  expect(core.getInput).toHaveBeenCalledWith("github-token", {
-    required: true,
-  });
-  expect(core.getInput).toHaveBeenCalledWith("base-branch", { required: true });
-  expect(core.getInput).toHaveBeenCalledWith("target-branch", {
-    required: true,
+    expect(core.getInput).toHaveBeenCalledWith("github-token", {
+      required: true,
+    });
+    expect(core.getInput).toHaveBeenCalledWith("base-branch", { required: true });
+    expect(core.getInput).toHaveBeenCalledWith("target-branch", {
+      required: true,
+    });
+
+    expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
+      owner: "owner",
+      repo: "repo",
+      title: "Main into Develop for Release v1.2.1",
+      head: "develop",
+      base: "main",
+    });
   });
 
-  expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
-    owner: "owner",
-    repo: "repo",
-    title: "Main into Develop for Release v1.2.1",
-    head: "develop",
-    base: "main",
+  it("does not create a PR when one already exists", async () => {
+    require("@actions/github").__setMockPullsList([
+      { html_url: "https://github.com/owner/repo/pull/1" },
+    ]);
+
+    await run();
+
+    expect(mockOctokit.rest.pulls.create).not.toHaveBeenCalledWith({
+      owner: "owner",
+      repo: "repo",
+      title: "Main into Develop for Release v999.9.9",
+      head: "develop",
+      base: "main",
+    });
   });
 });
 
-test("Run does not create PR if one already exists", async () => {
-  require("@actions/github").__setMockPullsList([
-    { html_url: "https://github.com/owner/repo/pull/1" },
-  ]);
+describe("_checkExistingPr", () => {
+  it("returns the PR url when an open PR already exists", async () => {
+    require("@actions/github").__setMockPullsList([
+      { html_url: "https://github.com/owner/repo/pull/1" },
+    ]);
 
-  await run();
-
-  expect(mockOctokit.rest.pulls.create).not.toHaveBeenCalledWith({
-    owner: "owner",
-    repo: "repo",
-    title: "Main into Develop for Release v999.9.9",
-    head: "develop",
-    base: "main",
+    const result = await _checkExistingPr(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "develop",
+      "main",
+    );
+    expect(result).toBe("https://github.com/owner/repo/pull/1");
   });
-});
 
-test("checkExistingPr fails when an open PR already exists", async () => {
-  require("@actions/github").__setMockPullsList([
-    { html_url: "https://github.com/owner/repo/pull/1" },
-  ]);
+  it("returns undefined when no open PR exists", async () => {
+    require("@actions/github").__setMockPullsList([]);
 
-  const result = await _checkExistingPr(
-    mockOctokit as any,
-    "owner",
-    "repo",
-    "develop",
-    "main",
-  );
-  expect(result).toBe("https://github.com/owner/repo/pull/1");
-});
-
-test("checkExistingPr returns null when no open PR exists", async () => {
-  require("@actions/github").__setMockPullsList([]);
-
-  const result = await _checkExistingPr(
-    mockOctokit as any,
-    "owner",
-    "repo",
-    "develop",
-    "main",
-  );
-  expect(result).toBeUndefined();
+    const result = await _checkExistingPr(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "develop",
+      "main",
+    );
+    expect(result).toBeUndefined();
+  });
 });
