@@ -55,8 +55,18 @@ jobs:
         id: create_release_notes
         uses: ./create-release-notes
         with:
-          base-branch: "origin/main"
-          release-branch: "origin/${{ steps.generate_branch_name.outputs.release-branch }}"
+          base-branch: "main"
+          release-branch: "${{ steps.generate_branch_name.outputs.release-branch }}"
+          confluence-space: "kaisunraj"
+          github-token: ${{ secrets.PAT }}
+          generate-github-release: "true"
+
+      - name: Run create-release-notes action with same base and target branch
+        id: create_release_notes_same_branch
+        uses: ./create-release-notes
+        with:
+          base-branch: "main"
+          release-branch: "main"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
           generate-github-release: "true"
@@ -65,8 +75,8 @@ jobs:
         id: create_release_notes_print
         uses: ./create-release-notes
         with:
-          base-branch: "origin/main"
-          release-branch: "origin/${{ steps.generate_branch_name.outputs.release-branch }}"
+          base-branch: "main"
+          release-branch: "${{ steps.generate_branch_name.outputs.release-branch }}"
           confluence-space: "kaisunraj"
           github-token: ${{ secrets.PAT }}
           generate-github-release: "false"
