@@ -98,6 +98,7 @@ test("Filtering Jira tickets from commit messages", () => {
     "chore: update dependencies",
     "refactor: improve code structure OVP-9012",
     "docs: update README OVP-3456",
+    "OVP-0000: invalid ticket format",
   ];
   const expectedTickets = ["OVP-1234", "OVP-5678", "OVP-9012", "OVP-3456"];
   const result = _filterJiraTickets(commitMessages);
