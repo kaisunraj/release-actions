@@ -16,12 +16,14 @@ jobs:
 
       - name: Exit if manual test release
         uses: actions/github-script@v6
+        env: 
+          VERSION: ${GITHUB_REF#refs/tags/}
         with:
           script: |
-            const release = context.payload.release;
-            if (release.tag_name.match(/^releases\/v\d{10}$/)) {
+            const release_tag = process.env.VERSION;
+            if (release_tag.match(/^releases\/v\d{10}$/)) {
               console.log("This is a manual test release. Exiting without updating major version tag.");
-              process.exit(0);
+              process.exit(1);
             }
 
       - name: Get major version num and update tag
