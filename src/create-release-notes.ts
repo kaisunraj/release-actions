@@ -90,11 +90,15 @@ async function releaseExists(
         },
       },
     );
-    console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
+    console.log(
+      `Release with tag ${tag} already exists with id ${response.data.id}`,
+    );
     return response.data.id;
   } catch (error: any) {
     if (error.status === 404) {
-      console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
+      console.log(
+        `Release with tag ${tag} does not exist. Will create a new one.`,
+      );
       return false;
     }
     throw error;
@@ -108,7 +112,7 @@ async function createRelease(
   tag: string,
   releaseBranch: string,
   body: string,
-  draft: boolean = true
+  draft: boolean = true,
 ) {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
@@ -225,14 +229,10 @@ function publishDraftRelease(
 async function publishLatestRelease(
   octokit: Octokit,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<number | undefined> {
   console.log("Publishing latest release...");
-  const releaseExistsId = await getLatestDraftRelease(
-    octokit,
-    owner,
-    repo,
-  );
+  const releaseExistsId = await getLatestDraftRelease(octokit, owner, repo);
   if (releaseExistsId) {
     console.log(
       `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
@@ -257,8 +257,18 @@ async function generateReleaseNotes(
     `generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`,
   );
   // If branch base branch and release branch are the same, publish latest release
-  if (baseBranch.replace(/^origin\//, "") === releaseBranch.replace(/^origin\//, "")) {
+  if (
+    baseBranch.replace(/^origin\//, "") ===
+    releaseBranch.replace(/^origin\//, "")
+  ) {
+    console.log(
+      `Base branch and release branch are the same (${baseBranch}). Publishing latest release instead of generating new release notes...`,
+    );
     const result = await publishLatestRelease(octokit, owner, repo);
+    if (result === -1) {
+      console.log("No releases found to publish.");
+      return;
+    }
     if (result) {
       return result;
     }
@@ -326,6 +336,7 @@ export {
   createRelease as _createRelease,
   listBranches as _listBranches,
   createGithubRelease as _createGithubRelease,
+  publishDraftRelease as _publishDraftRelease,
   Octokit as _Octokit,
   generateReleaseNotesContent as _generateReleaseNotesContent,
   generateReleaseNotes as _generateReleaseNotes,

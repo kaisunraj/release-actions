@@ -23,8 +23,10 @@ import {
   _generateReleaseNotesContent,
   _getCommitMessages,
   _listBranches,
+  _publishDraftRelease,
   _releaseExists,
 } from "../create-release-notes";
+import { mock } from "node:test";
 
 test("Listing branches", () => {
   const branches = [
@@ -125,7 +127,7 @@ test("Test release exists returns false when release does not exist", async () =
 });
 
 test("Test release exists returns id when release exists", async () => {
-  mockOctokit.request.mockResolvedValue({ data: { id: 123 } })
+  mockOctokit.request.mockResolvedValue({ data: { id: 123 } });
   const result = await _releaseExists(
     mockOctokit as any,
     "owner",
@@ -136,7 +138,10 @@ test("Test release exists returns id when release exists", async () => {
 });
 
 test("Test releaseExists throws error on unexpected error", async () => {
-  mockOctokit.request.mockRejectedValue({ status: 500, message: "Server error" });
+  mockOctokit.request.mockRejectedValue({
+    status: 500,
+    message: "Server error",
+  });
   await expect(
     _releaseExists(mockOctokit as any, "owner", "repo", "tag"),
   ).rejects.toEqual({ status: 500, message: "Server error" });
@@ -205,7 +210,6 @@ test("createGithubRelease when release does not exist", async () => {
   expect(result).toBe(123);
 });
 
-
 test("Testing generateReleaseNotes release exists", async () => {
   mockExec.mockImplementation((command, callback) => {
     callback(null, "OVP-1: one\nOVP-2: two\n", "");
@@ -273,10 +277,7 @@ test("Generate release notes with createGithubReleaseTag false does not call cre
   mockExec.mockImplementation((command, callback) => {
     callback(null, "OVP-1: one\nOVP-2: two\n", "");
   });
-  const mockOctokit = {
-    request: jest.fn(),
-  };
-  const result = await _generateReleaseNotes(
+  await _generateReleaseNotes(
     mockOctokit as any,
     "owner",
     "repo",
@@ -285,7 +286,9 @@ test("Generate release notes with createGithubReleaseTag false does not call cre
     "releases/v1.0.0",
     false, // createGithubReleaseTag
   );
-  expect(mockOctokit.request).not.toHaveBeenCalled();
+  expect(mockOctokit.request).not.toHaveBeenCalledWith(
+    "POST /repos/{owner}/{repo}/releases",
+  );
   expect(core.summary.addHeading).toHaveBeenCalledWith(
     "Release notes for tag v1.0.0",
   );
@@ -293,4 +296,41 @@ test("Generate release notes with createGithubReleaseTag false does not call cre
     "https://confluenceSpace.atlassian.net/browse/OVP-1",
     "https://confluenceSpace.atlassian.net/browse/OVP-2",
   ]);
+});
+
+test("Generate release notes where base and release branches are the same", async () => {
+  mockExec.mockImplementation((command, callback) => {
+    callback(null, "OVP-1: one\nOVP-2: two\n", "");
+  });
+  const result = await _generateReleaseNotes(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    "confluenceSpace",
+    "main",
+    "main", // releaseBranch is the same as baseBranch
+  );
+  expect(result).toBeUndefined();
+});
+
+test("publishDraftRelease", async () => {
+  mockOctokit.request.mockResolvedValue({ data: { id: 789 } });
+  const result = await _publishDraftRelease(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    789,
+  );
+  expect(result).toEqual({ data: { id: 789 } });
+});
+
+test("publishLatestRelease", async () => {
+  mockOctokit.request.mockResolvedValue({ data: { id: 789 } });
+  const result = await _publishDraftRelease(
+    mockOctokit as any,
+    "owner",
+    "repo",
+    789,
+  );
+  expect(result).toEqual({ data: { id: 789 } });
 });

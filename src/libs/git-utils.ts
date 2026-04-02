@@ -26,7 +26,7 @@ export function sortReleaseVersions(a: string, b: string): number {
   for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
     const partA = partsA[i] || 0;
     const partB = partsB[i] || 0;
-    
+
     if (partA === partB) continue;
 
     // If both parts are numbers, compare numerically
@@ -36,9 +36,8 @@ export function sortReleaseVersions(a: string, b: string): number {
 
     if (partA === 0 || partB === 0) {
       // If one version has fewer parts, that version is considered older (e.g. v1.2 < v1.2.0)
-      return partA === 0 ? - 1 : 1;
+      return partA === 0 ? -1 : 1;
     }
-
 
     // Otherwise, compare as strings
     return String(partA).localeCompare(String(partB));
@@ -116,13 +115,14 @@ export function getTagFromBranchName(
   return match[1];
 }
 
-
 export async function getLatestDraftRelease(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
   repo: string,
 ): Promise<number | undefined> {
-  console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+  console.log(
+    `Fetching releases for ${owner}/${repo} to find latest draft releases...`,
+  );
   const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
     owner,
     repo,
@@ -131,12 +131,22 @@ export async function getLatestDraftRelease(
       "X-GitHub-Api-Version": "2026-03-10",
     },
   });
+  if (!releases) {
+    console.log("No releases found for repository.");
+    return -1;
+  }
   console.debug("Releases response:", releases);
-  const draftReleases = releases.filter((release: { draft: boolean }) => release.draft);
-  console.log("Found draft releases:", draftReleases.map((r: { tag_name: string }) => r.tag_name));
+  const draftReleases = releases.filter(
+    (release: { draft: boolean }) => release.draft,
+  );
+  console.log(
+    "Found draft releases:",
+    draftReleases.map((r: { tag_name: string }) => r.tag_name),
+  );
   // sort draft releases by version number and return the id of the latest one
-  const sortedDraftReleases = draftReleases.sort((a: { tag_name: string }, b: { tag_name: string }) =>
-    sortReleaseVersions(a.tag_name, b.tag_name),
+  const sortedDraftReleases = draftReleases.sort(
+    (a: { tag_name: string }, b: { tag_name: string }) =>
+      sortReleaseVersions(a.tag_name, b.tag_name),
   );
   return sortedDraftReleases[sortedDraftReleases.length - 1]?.id || undefined;
 }

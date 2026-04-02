@@ -32344,6 +32344,10 @@ async function getLatestDraftRelease(octokit, owner, repo) {
             "X-GitHub-Api-Version": "2026-03-10",
         },
     });
+    if (!releases) {
+        console.log("No releases found for repository.");
+        return -1;
+    }
     console.debug("Releases response:", releases);
     const draftReleases = releases.filter((release) => release.draft);
     console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));

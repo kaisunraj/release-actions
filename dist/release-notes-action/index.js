@@ -32141,6 +32141,7 @@ exports._releaseExists = releaseExists;
 exports._createRelease = createRelease;
 exports._listBranches = listBranches;
 exports._createGithubRelease = createGithubRelease;
+exports._publishDraftRelease = publishDraftRelease;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
 exports._generateReleaseNotes = generateReleaseNotes;
 const core = __importStar(__nccwpck_require__(7484));
@@ -32294,8 +32295,14 @@ async function publishLatestRelease(octokit, owner, repo) {
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
     // If branch base branch and release branch are the same, publish latest release
-    if (baseBranch.replace(/^origin\//, "") === releaseBranch.replace(/^origin\//, "")) {
+    if (baseBranch.replace(/^origin\//, "") ===
+        releaseBranch.replace(/^origin\//, "")) {
+        console.log(`Base branch and release branch are the same (${baseBranch}). Publishing latest release instead of generating new release notes...`);
         const result = await publishLatestRelease(octokit, owner, repo);
+        if (result === -1) {
+            console.log("No releases found to publish.");
+            return;
+        }
         if (result) {
             return result;
         }
@@ -32479,6 +32486,10 @@ async function getLatestDraftRelease(octokit, owner, repo) {
             "X-GitHub-Api-Version": "2026-03-10",
         },
     });
+    if (!releases) {
+        console.log("No releases found for repository.");
+        return -1;
+    }
     console.debug("Releases response:", releases);
     const draftReleases = releases.filter((release) => release.draft);
     console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
