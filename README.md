@@ -1,3 +1,5 @@
+![Coverage](.coverage/coverage-branches.svg) ![Coverage](.coverage/coverage-functions.svg) ![Coverage](.coverage/coverage-lines.svg) ![Coverage](.coverage/coverage-statements.svg)
+
 # release-actions
 
 TypeScript-based GitHub Actions for release automation:
