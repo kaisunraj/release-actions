@@ -1,5 +1,12 @@
 node_modules/
 .env
 .vscode/
-/coverage
 dnc_*
+
+# Coverage
+
+coverage/lcov-report
+coverage/coverage-final.json
+coverage/coverage-summary.json
+coverage/clover.xml
+coverage/lcov.info
