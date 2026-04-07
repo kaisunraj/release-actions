@@ -1,4 +1,4 @@
-![Coverage](.coverage/badge-branches.svg) ![Coverage](.coverage/badge-functions.svg) ![Coverage](.coverage/badge-lines.svg) ![Coverage](.coverage/badge-statements.svg)
+![Coverage](coverage/badge-branches.svg) ![Coverage](coverage/badge-functions.svg) ![Coverage](coverage/badge-lines.svg) ![Coverage](coverage/badge-statements.svg)
 
 # release-actions
 
