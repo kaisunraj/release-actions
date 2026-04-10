@@ -32359,7 +32359,7 @@ async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?rel
         }
         const nextMinorVersion = `v${major}.${minor + 1}.0`;
         console.log(`Branch is develop, using next minor version tag: ${nextMinorVersion}`);
-        return latestReleaseTag;
+        return nextMinorVersion;
     }
     return getTagFromBranchName(branchName, pattern);
 }

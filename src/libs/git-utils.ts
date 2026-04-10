@@ -145,7 +145,7 @@ export async function getTag(
     console.log(
       `Branch is develop, using next minor version tag: ${nextMinorVersion}`,
     );
-    return latestReleaseTag;
+    return nextMinorVersion;
   }
   return getTagFromBranchName(branchName, pattern);
 }
