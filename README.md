@@ -1,3 +1,5 @@
+![Coverage](coverage/badge-branches.svg) ![Coverage](coverage/badge-functions.svg) ![Coverage](coverage/badge-lines.svg) ![Coverage](coverage/badge-statements.svg)
+
 # release-actions
 
 TypeScript-based GitHub Actions for release automation:
