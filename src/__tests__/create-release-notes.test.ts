@@ -19,7 +19,16 @@ import {
   _generateJiraLinks,
   _generateReleaseNotes,
   _generateReleaseNotesContent,
+  _getMergedBranchNames,
+  _getTicketsBetweenBranches,
 } from "../create-release-notes";
+import { mock } from "node:test";
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockOctokit.request.mockReset();
+  mockOctokit.paginate.mockReset();
+});
 
 describe("_filterJiraTickets", () => {
   it("extracts Jira ticket IDs from commit messages", () => {
@@ -36,6 +45,39 @@ describe("_filterJiraTickets", () => {
   });
 });
 
+describe("_getMergedBranchNames", () => {
+  it("extracts PR numbers from commit messages and retrieves merged branch names", async () => {
+    const commits = [
+      { commit: { message: "Merge pull request (#42) from feature/awesome" } },
+      { commit: { message: "Merge pull request #99 from bugfix/critical" } },
+      { commit: { message: "chore: update dependencies" } },
+    ];
+
+    mockOctokit.request.mockImplementation((url: string, options: any) => {
+      if (url === "GET /repos/{owner}/{repo}/pulls/{pull_number}") {
+        if (options.pull_number === 42) {
+          return Promise.resolve({
+            data: { head: { ref: "feature/awesome" } },
+          });
+        } else if (options.pull_number === 99) {
+          return Promise.resolve({
+            data: { head: { ref: "bugfix/critical" } },
+          });
+        }
+      }
+      return Promise.reject(new Error("Unexpected API call"));
+    });
+
+    const result = await _getMergedBranchNames(
+      mockOctokit,
+      "owner",
+      "repo",
+      commits,
+    );
+    expect(result).toEqual(["feature/awesome", "bugfix/critical"]);
+  });
+});
+
 describe("_generateJiraLinks", () => {
   it("generates Atlassian browse URLs for each ticket", () => {
     const tickets = ["OVP-1234", "OVP-5678"];
@@ -46,6 +88,50 @@ describe("_generateJiraLinks", () => {
     ];
     const result = _generateJiraLinks(confluenceSpace, tickets);
     expect(result).toEqual(expectedLinks);
+  });
+});
+
+describe("getTicketsBetweenBranches", () => {
+  it("returns a list of Jira tickets between the release branch and base branch", async () => {
+    mockOctokit.request.mockResolvedValueOnce({
+      data: {
+        commits: [
+          {
+            commit: { message: "Merge pull request #42 from feature/OVP-1234" },
+          },
+          {
+            commit: { message: "Merge pull request #99 from feature/OVP-5678" },
+          },
+          { commit: { message: "New feature (#100)" } },
+        ],
+      },
+    });
+    mockOctokit.request.mockImplementation((url: string, options: any) => {
+      if (url === "GET /repos/{owner}/{repo}/pulls/{pull_number}") {
+        if (options.pull_number === 42) {
+          return Promise.resolve({
+            data: { head: { ref: "feature/OVP-1234" } },
+          });
+        } else if (options.pull_number === 99) {
+          return Promise.resolve({
+            data: { head: { ref: "feature/OVP-5678" } },
+          });
+        } else if (options.pull_number === 100) {
+          return Promise.resolve({
+            data: { head: { ref: "feature/OVP-9012" } },
+          });
+        }
+      }
+      return Promise.reject(new Error("Unexpected API call"));
+    });
+    const result = await _getTicketsBetweenBranches(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "releases/v1.0.0",
+      "develop",
+    );
+    expect(result).toEqual(["OVP-1234", "OVP-5678", "OVP-9012"]);
   });
 });
 
@@ -68,18 +154,29 @@ describe("_generateReleaseNotesContent", () => {
   });
 });
 
-describe("_generateReleaseNotes", () => {
+describe("generateReleaseNotes", () => {
+  function setupMock() {
+    mockOctokit.request
+      .mockResolvedValueOnce({
+        data: {
+          commits: [
+            { commit: { message: "Merge pull request from feature/OVP-1234" } },
+            { commit: { message: "Merge pull request from feature/OVP-5678" } },
+            { commit: { message: "New feature (#100)" } },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: { head: { ref: "feature/OVP-9012" } },
+      }); // PR #42
+  }
+
   it("updates the existing release and returns its id", async () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "OVP-1: one\nOVP-2: two\n", "");
-    });
-    const mockOctokit = {
-      request: jest
-        .fn()
-        .mockResolvedValueOnce({ data: { id: 123 } }) // releaseExists
-        .mockResolvedValueOnce({ data: { id: 123 } }), // updateRelease
-    };
-    return expect(
+    setupMock();
+    mockOctokit.request
+      .mockResolvedValueOnce({ data: { id: 123 } }) // releaseExists
+      .mockResolvedValueOnce({ data: { id: 123 } }); // updateRelease
+    expect(
       _generateReleaseNotes(
         mockOctokit as any,
         "owner",
@@ -92,16 +189,11 @@ describe("_generateReleaseNotes", () => {
   });
 
   it("creates a new release and returns its id when none exists", async () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "OVP-1: one\nOVP-2: two\n", "");
-    });
-    const mockOctokit = {
-      request: jest
-        .fn()
-        .mockRejectedValueOnce({ status: 404 }) // releaseExists
-        .mockResolvedValueOnce({ data: { id: 456 } }), // createRelease
-    };
-    return expect(
+    setupMock();
+    mockOctokit.request
+      .mockRejectedValueOnce({ status: 404 }) // releaseExists
+      .mockResolvedValueOnce({ data: { id: 456 } }); // createRelease
+    expect(
       _generateReleaseNotes(
         mockOctokit as any,
         "owner",
@@ -114,13 +206,15 @@ describe("_generateReleaseNotes", () => {
   });
 
   it("resolves with undefined when no Jira tickets are found in commit messages", async () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "chore: update dependencies\n", "");
+    mockOctokit.request.mockResolvedValueOnce({
+      data: {
+        commits: [
+          { commit: { message: "chore: update dependencies" } },
+          { commit: { message: "docs: update README" } },
+        ],
+      },
     });
-    const mockOctokit = {
-      request: jest.fn(),
-    };
-    return expect(
+    expect(
       _generateReleaseNotes(
         mockOctokit as any,
         "owner",
@@ -133,6 +227,7 @@ describe("_generateReleaseNotes", () => {
   });
 
   it("returns the latest draft release id and publishes it when base and release branches are the same", async () => {
+    setupMock();
     require("@actions/github").__setMockPaginate([
       { tag_name: "v1.0.0", id: 789, draft: false },
       { tag_name: "v1.0.3", id: 792, draft: true },
@@ -158,10 +253,8 @@ describe("_generateReleaseNotes", () => {
   });
 
   it("does not call createGithubRelease and writes a job summary when createGithubReleaseTag is false", async () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "OVP-1: one\nOVP-2: two\n", "");
-    });
-    await _generateReleaseNotes(
+    setupMock();
+    const result = await _generateReleaseNotes(
       mockOctokit as any,
       "owner",
       "repo",
@@ -177,8 +270,9 @@ describe("_generateReleaseNotes", () => {
       "Release notes for tag v1.0.0",
     );
     expect(core.summary.addList).toHaveBeenCalledWith([
-      "https://confluenceSpace.atlassian.net/browse/OVP-1",
-      "https://confluenceSpace.atlassian.net/browse/OVP-2",
+      "https://confluenceSpace.atlassian.net/browse/OVP-1234",
+      "https://confluenceSpace.atlassian.net/browse/OVP-5678",
+      "https://confluenceSpace.atlassian.net/browse/OVP-9012",
     ]);
   });
 

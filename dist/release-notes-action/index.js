@@ -32133,8 +32133,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getTicketsBetweenBranches = getTicketsBetweenBranches;
+exports._getTicketsBetweenBranches = getTicketsBetweenBranches;
 exports.run = run;
 exports._filterJiraTickets = filterJiraTickets;
+exports._getMergedBranchNames = getMergedBranchNames;
 exports._generateJiraLinks = generateJiraLinks;
 exports._generateReleaseNotes = generateReleaseNotes;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
@@ -32159,6 +32162,36 @@ function filterJiraTickets(commitMessages) {
     });
     return Array.from(tickets);
 }
+async function getMergedBranchNames(octokit, owner, repo, commits) {
+    const prNumbers = new Set();
+    for (const commit of commits) {
+        const message = commit.commit.message;
+        const mergeMatch = message.match(/#\d+/);
+        if (mergeMatch) {
+            const prNo = Number(mergeMatch[0].slice(1));
+            prNumbers.add(prNo);
+        }
+    }
+    const mergedBranches = new Set();
+    for (const prNo of prNumbers) {
+        try {
+            const prResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+                owner,
+                repo,
+                pull_number: prNo,
+                headers: {
+                    "X-GitHub-Api-Version": "2026-03-10",
+                },
+            });
+            const pr = prResponse.data;
+            mergedBranches.add(pr.head.ref);
+        }
+        catch (error) {
+            console.error(`Error fetching PR #${prNo}:`, error);
+        }
+    }
+    return Array.from(mergedBranches);
+}
 function generateJiraLinks(confluenceSpace, tickets) {
     return tickets.map((ticket) => `https://${confluenceSpace}.atlassian.net/browse/${ticket}`);
 }
@@ -32167,6 +32200,29 @@ function generateReleaseNotesContent(links) {
         return "No Jira tickets found for this release.";
     }
     return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
+}
+async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch = "develop") {
+    // Remove origin/ prefix if present for comparison
+    releaseBranch = releaseBranch.replace(/^origin\//, "");
+    baseBranch = baseBranch.replace(/^origin\//, "");
+    console.log(`Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`);
+    const response = await octokit.request("GET /repos/{owner}/{repo}/compare/{base}...{head}", {
+        owner,
+        repo,
+        base: baseBranch,
+        head: releaseBranch,
+        headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+    });
+    const commits = response.data.commits;
+    console.log(`Found ${commits.length} commits between ${baseBranch} and ${releaseBranch}`);
+    const jiraTickets = filterJiraTickets(commits.map((commit) => commit.commit.message));
+    const mergedBranches = await getMergedBranchNames(octokit, owner, repo, commits);
+    const mergedBranchTickets = filterJiraTickets(mergedBranches);
+    const allTickets = Array.from(new Set([...jiraTickets, ...mergedBranchTickets]));
+    console.log(`Extracted ${allTickets.length} unique Jira tickets:`, allTickets);
+    return allTickets;
 }
 async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseBranch, releaseBranch, createReleaseTag = true) {
     console.debug(`generateReleaseNotes called with baseBranch=${baseBranch}, releaseBranch=${releaseBranch}, createReleaseTag=${createReleaseTag}`);
@@ -32184,9 +32240,7 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
         }
     }
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
-    (0, git_utils_1.listBranches)();
-    const commitMessages = await (0, git_utils_1.getCommitMessages)(baseBranch, releaseBranch);
-    const tickets = filterJiraTickets(commitMessages);
+    const tickets = await getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch);
     if (tickets.length === 0) {
         core.info("No commits found between base branch and release branch.");
         return;
@@ -32268,7 +32322,6 @@ exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
 exports.getLatestDraftRelease = getLatestDraftRelease;
 exports.listBranches = listBranches;
-exports.getCommitMessages = getCommitMessages;
 exports.releaseExists = releaseExists;
 exports.createRelease = createRelease;
 exports.updateRelease = updateRelease;
@@ -32414,27 +32467,6 @@ function listBranches() {
                 .filter(Boolean);
             console.debug("Branches:", branches);
             resolve(branches);
-        });
-    });
-}
-/**
- * Gets the commit messages between two branches by executing "git log baseBranch..releaseBranch --pretty=format:%s" command.
- * @returns
- */
-function getCommitMessages(baseBranch, releaseBranch) {
-    return new Promise((resolve, reject) => {
-        (0, child_process_1.exec)(`git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`, (error, stdout, stderr) => {
-            if (error) {
-                return reject(new Error(`Error fetching commit messages: ${error.message}`));
-            }
-            if (stderr) {
-                return reject(new Error(`Error output: ${stderr}`));
-            }
-            const commitMessages = stdout
-                .split("\n")
-                .map((m) => m.trim())
-                .filter(Boolean);
-            resolve(commitMessages);
         });
     });
 }
