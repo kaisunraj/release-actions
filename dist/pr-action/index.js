@@ -32359,7 +32359,7 @@ async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?rel
         }
         const nextMinorVersion = `v${major}.${minor + 1}.0`;
         console.log(`Branch is develop, using next minor version tag: ${nextMinorVersion}`);
-        return nextMinorVersion;
+        return latestReleaseTag;
     }
     return getTagFromBranchName(branchName, pattern);
 }
@@ -32438,7 +32438,7 @@ async function releaseExists(octokit, owner, repo, tag) {
     }
     catch (error) {
         if (error.status === 404) {
-            console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
+            console.log(`Release with tag ${tag} does not exist.`);
             return false;
         }
         throw error;

@@ -145,7 +145,7 @@ export async function getTag(
     console.log(
       `Branch is develop, using next minor version tag: ${nextMinorVersion}`,
     );
-    return nextMinorVersion;
+    return latestReleaseTag;
   }
   return getTagFromBranchName(branchName, pattern);
 }
@@ -254,7 +254,7 @@ export async function releaseExists(
   } catch (error: any) {
     if (error.status === 404) {
       console.log(
-        `Release with tag ${tag} does not exist. Will create a new one.`,
+        `Release with tag ${tag} does not exist.`,
       );
       return false;
     }

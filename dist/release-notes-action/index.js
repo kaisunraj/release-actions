@@ -32238,7 +32238,7 @@ async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, ba
             baseBranch = prevMinorVersionBranch;
         }
         else {
-            console.log(`Previous minor version branch not found. Comparing against main...`);
+            console.log(`Previous minor version is not a prerelease. Comparing against main...`);
         }
     }
     console.log(`Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`);
@@ -32467,7 +32467,7 @@ async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?rel
         }
         const nextMinorVersion = `v${major}.${minor + 1}.0`;
         console.log(`Branch is develop, using next minor version tag: ${nextMinorVersion}`);
-        return nextMinorVersion;
+        return latestReleaseTag;
     }
     return getTagFromBranchName(branchName, pattern);
 }
@@ -32546,7 +32546,7 @@ async function releaseExists(octokit, owner, repo, tag) {
     }
     catch (error) {
         if (error.status === 404) {
-            console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
+            console.log(`Release with tag ${tag} does not exist.`);
             return false;
         }
         throw error;

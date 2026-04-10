@@ -144,7 +144,7 @@ export async function getTicketsBetweenBranches(
       baseBranch = prevMinorVersionBranch;
     } else {
       console.log(
-        `Previous minor version branch not found. Comparing against main...`,
+        `Previous minor version is not a prerelease. Comparing against main...`,
       );
     }
   }
