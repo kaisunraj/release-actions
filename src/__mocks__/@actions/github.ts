@@ -26,7 +26,17 @@ const context: any = { repo: { owner: "owner", repo: "repo" } };
 const mockOctokit = {
   request: jest.fn(),
   rest: { pulls: mockPulls, repos: repos },
-  paginate: jest.fn(),
+  paginate: jest
+    .fn()
+    .mockResolvedValue([
+      { name: "releases/v1.0.0" },
+      { name: "releases/v1.2.0" },
+      { name: "releases/v1.2.1" },
+      { name: "releases/v1.1.0" },
+      { name: "releases/v1.1.1" },
+      { name: "main" },
+      { name: "develop" },
+    ]),
 };
 
 function __setMockValue(value: any) {

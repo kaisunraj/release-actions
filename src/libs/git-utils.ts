@@ -56,7 +56,7 @@ export async function getLatestReleaseTag(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
   repo: string,
-): Promise<string | undefined> {
+): Promise<string> {
   console.log(
     `Fetching branches for ${owner}/${repo} to find latest release tag...`,
   );
@@ -78,7 +78,7 @@ export async function getLatestReleaseTag(
     core.setFailed(
       "No release branches found matching pattern 'releases/v*.*.*'",
     );
-    return undefined;
+    return "v0.0.0";
   }
 
   // Sort the release branches by version number and get the latest one
@@ -104,10 +104,6 @@ export function getTagFromBranchName(
   branchName: string,
   pattern: RegExp = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/,
 ): string {
-  console.log(`Extracting tag from branch name: ${branchName}`);
-  if (branchName.replace(/^origin\//, "") === "develop") {
-    return "develop";
-  }
   const match = branchName.match(pattern);
   if (!match) {
     throw new Error(
@@ -115,6 +111,33 @@ export function getTagFromBranchName(
     );
   }
   return match[1];
+}
+
+export async function getTag(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+  branchName: string,
+  pattern: RegExp = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/,
+): Promise<string> {
+  console.log(`Extracting tag from branch name: ${branchName}`);
+  if (branchName.replace(/^origin\//, "") === "develop") {
+    const latestReleaseTag = await getLatestReleaseTag(octokit, owner, repo);
+    const versionParts = extractVersionParts(latestReleaseTag);
+    const major = versionParts[0] || 0;
+    const minor = versionParts[1] || 0;
+    if (typeof major !== "number" || typeof minor !== "number") {
+      throw new Error(
+        `Latest release tag "${latestReleaseTag}" does not have a valid version format (e.g. v1.2.3)`,
+      );
+    }
+    const nextMinorVersion = `v${major}.${minor + 1}.0`;
+    console.log(
+      `Branch is develop, using next minor version tag: ${nextMinorVersion}`,
+    );
+    return nextMinorVersion;
+  }
+  return getTagFromBranchName(branchName, pattern);
 }
 
 /**

@@ -32239,7 +32239,7 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
             return result;
         }
     }
-    const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
+    const releaseTag = await (0, git_utils_1.getTag)(octokit, owner, repo, releaseBranch);
     const tickets = await getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch);
     if (tickets.length === 0) {
         core.info("No commits found between base branch and release branch.");
@@ -32320,6 +32320,7 @@ exports.extractVersionParts = extractVersionParts;
 exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
+exports.getTag = getTag;
 exports.getLatestDraftRelease = getLatestDraftRelease;
 exports.listBranches = listBranches;
 exports.releaseExists = releaseExists;
@@ -32387,7 +32388,7 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
-        return undefined;
+        return "v0.0.0";
     }
     // Sort the release branches by version number and get the latest one
     const releaseBranchNames = releaseBranches.map((branch) => branch.name);
@@ -32405,15 +32406,27 @@ async function getLatestReleaseTag(octokit, owner, repo) {
  *   - release/v1.2.3
  */
 function getTagFromBranchName(branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
-    console.log(`Extracting tag from branch name: ${branchName}`);
-    if (branchName.replace(/^origin\//, "") === "develop") {
-        return "develop";
-    }
     const match = branchName.match(pattern);
     if (!match) {
         throw new Error(`Branch name "${branchName}" does not match expected release branch pattern (e.g. releases/v1.2.3 or origin/releases/v1.2.3)`);
     }
     return match[1];
+}
+async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?releases?\/(?:origin\/)?(v\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)$/) {
+    console.log(`Extracting tag from branch name: ${branchName}`);
+    if (branchName.replace(/^origin\//, "") === "develop") {
+        const latestReleaseTag = await getLatestReleaseTag(octokit, owner, repo);
+        const versionParts = extractVersionParts(latestReleaseTag);
+        const major = versionParts[0] || 0;
+        const minor = versionParts[1] || 0;
+        if (typeof major !== "number" || typeof minor !== "number") {
+            throw new Error(`Latest release tag "${latestReleaseTag}" does not have a valid version format (e.g. v1.2.3)`);
+        }
+        const nextMinorVersion = `v${major}.${minor + 1}.0`;
+        console.log(`Branch is develop, using next minor version tag: ${nextMinorVersion}`);
+        return nextMinorVersion;
+    }
+    return getTagFromBranchName(branchName, pattern);
 }
 /**
  * gets the latest draft release for a given repository.
