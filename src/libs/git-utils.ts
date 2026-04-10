@@ -48,18 +48,11 @@ export function sortReleaseVersions(a: string, b: string): number {
   return 0;
 }
 
-/**
- * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
- * and returning the one with the highest version number
- */
-export async function getLatestReleaseTag(
-  octokit: InstanceType<typeof GitHub>,
+export async function getReleaseBranches(
+  octokit: Octokit,
   owner: string,
   repo: string,
-): Promise<string> {
-  console.log(
-    `Fetching branches for ${owner}/${repo} to find latest release tag...`,
-  );
+): Promise<string[]> {
   const branches = await octokit.paginate(octokit.rest.repos.listBranches, {
     owner,
     repo,
@@ -77,16 +70,35 @@ export async function getLatestReleaseTag(
     core.setFailed(
       "No release branches found matching pattern 'releases/v*.*.*'",
     );
-    return "v0.0.0";
+    return [];
   }
-
   // Sort the release branches by version number and get the latest one
   const releaseBranchNames = releaseBranches.map(
     (branch: { name: string }) => branch.name,
   );
   console.log("Found release branches:", releaseBranchNames);
   releaseBranchNames.sort(sortReleaseVersions);
-
+  return releaseBranchNames;
+}
+/**
+ * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
+ * and returning the one with the highest version number
+ */
+export async function getLatestReleaseTag(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+): Promise<string> {
+  console.log(
+    `Fetching branches for ${owner}/${repo} to find latest release tag...`,
+  );
+  const releaseBranchNames = await getReleaseBranches(octokit, owner, repo);
+  if (releaseBranchNames.length === 0) {
+    core.setFailed(
+      "No release branches found matching pattern 'releases/v*.*.*'",
+    );
+    return "";
+  }
   const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
   core.info(`Latest release tag: ${releaseTag}`);
   return releaseTag;
@@ -223,7 +235,7 @@ export async function releaseExists(
   owner: string,
   repo: string,
   tag: string,
-): Promise<number | false> {
+): Promise<any> {
   try {
     const response = await octokit.request(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
@@ -239,12 +251,10 @@ export async function releaseExists(
     console.log(
       `Release with tag ${tag} already exists with id ${response.data.id}`,
     );
-    return response.data.id;
+    return response;
   } catch (error: any) {
     if (error.status === 404) {
-      console.log(
-        `Release with tag ${tag} does not exist. Will create a new one.`,
-      );
+      console.log(`Release with tag ${tag} does not exist.`);
       return false;
     }
     throw error;

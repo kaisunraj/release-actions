@@ -265,7 +265,7 @@ describe("releaseExists", () => {
       "repo",
       "tag",
     );
-    expect(result).toBe(123);
+    expect(result).toEqual({ data: { id: 123 } });
   });
 
   it("throws on non-404 errors", async () => {
@@ -320,7 +320,7 @@ describe("createGithubRelease", () => {
       "releases/v1.0.0",
       "Release notes content",
     );
-    expect(result).toBe(789);
+    expect(result).toEqual({ data: { id: 789 } });
   });
 
   it("creates and returns a new release id when the release does not exist", async () => {

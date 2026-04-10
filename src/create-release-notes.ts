@@ -3,8 +3,10 @@ import * as github from "@actions/github";
 import {
   createGithubRelease,
   extractVersionParts,
+  getReleaseBranches,
   getTag,
   publishLatestRelease,
+  releaseExists,
 } from "./libs/git-utils";
 
 export type Octokit = ReturnType<typeof github.getOctokit>;
@@ -96,21 +98,26 @@ async function findPreviousMinorBranch(
     return undefined;
   }
   const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
-  const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
   console.log(
-    `Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`,
+    `Checking for existence of previous minor release ${prevMinorReleaseTag}...`,
   );
-  return await octokit
-    .request("GET /repos/{owner}/{repo}/branches/{branch}", {
-      owner,
-      repo,
-      branch: prevMinorReleaseBranch,
-      headers: {
-        "X-GitHub-Api-Version": "2026-03-10",
-      },
-    })
-    .then(() => prevMinorReleaseBranch)
-    .catch(() => undefined);
+  const prevMinorRelease = await releaseExists(
+    octokit,
+    owner,
+    repo,
+    prevMinorReleaseTag,
+  );
+  if (!prevMinorRelease) {
+    return undefined;
+  }
+  if (prevMinorRelease.data.prerelease === true) {
+    console.log(
+      `Previous minor release ${prevMinorReleaseTag} is a pre-release.`,
+    );
+    const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
+    return prevMinorReleaseBranch;
+  }
+  return undefined;
 }
 
 export async function getTicketsBetweenBranches(
@@ -142,7 +149,7 @@ export async function getTicketsBetweenBranches(
       baseBranch = prevMinorVersionBranch;
     } else {
       console.log(
-        `Previous minor version branch not found. Comparing against main...`,
+        `Previous minor version is not a prerelease. Comparing against main...`,
       );
     }
   }

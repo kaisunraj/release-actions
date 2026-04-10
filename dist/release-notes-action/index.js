@@ -32211,19 +32211,17 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
         return undefined;
     }
     const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
-    const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
-    console.log(`Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`);
-    return await octokit
-        .request("GET /repos/{owner}/{repo}/branches/{branch}", {
-        owner,
-        repo,
-        branch: prevMinorReleaseBranch,
-        headers: {
-            "X-GitHub-Api-Version": "2026-03-10",
-        },
-    })
-        .then(() => prevMinorReleaseBranch)
-        .catch(() => undefined);
+    console.log(`Checking for existence of previous minor release ${prevMinorReleaseTag}...`);
+    const prevMinorRelease = await (0, git_utils_1.releaseExists)(octokit, owner, repo, prevMinorReleaseTag);
+    if (!prevMinorRelease) {
+        return undefined;
+    }
+    if (prevMinorRelease.data.prerelease === true) {
+        console.log(`Previous minor release ${prevMinorReleaseTag} is a pre-release.`);
+        const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
+        return prevMinorReleaseBranch;
+    }
+    return undefined;
 }
 async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch = "main", releaseTag) {
     // Remove origin/ prefix if present for comparison
@@ -32240,7 +32238,7 @@ async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, ba
             baseBranch = prevMinorVersionBranch;
         }
         else {
-            console.log(`Previous minor version branch not found. Comparing against main...`);
+            console.log(`Previous minor version is not a prerelease. Comparing against main...`);
         }
     }
     console.log(`Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`);
@@ -32356,6 +32354,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.extractVersionParts = extractVersionParts;
 exports.sortReleaseVersions = sortReleaseVersions;
+exports.getReleaseBranches = getReleaseBranches;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
 exports.getTag = getTag;
@@ -32407,12 +32406,7 @@ function sortReleaseVersions(a, b) {
     }
     return 0;
 }
-/**
- * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
- * and returning the one with the highest version number
- */
-async function getLatestReleaseTag(octokit, owner, repo) {
-    console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
+async function getReleaseBranches(octokit, owner, repo) {
     const branches = await octokit.paginate(octokit.rest.repos.listBranches, {
         owner,
         repo,
@@ -32425,12 +32419,25 @@ async function getLatestReleaseTag(octokit, owner, repo) {
     const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
-        return "v0.0.0";
+        return [];
     }
     // Sort the release branches by version number and get the latest one
     const releaseBranchNames = releaseBranches.map((branch) => branch.name);
     console.log("Found release branches:", releaseBranchNames);
     releaseBranchNames.sort(sortReleaseVersions);
+    return releaseBranchNames;
+}
+/**
+ * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
+ * and returning the one with the highest version number
+ */
+async function getLatestReleaseTag(octokit, owner, repo) {
+    console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
+    const releaseBranchNames = await getReleaseBranches(octokit, owner, repo);
+    if (releaseBranchNames.length === 0) {
+        core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
+        return "";
+    }
     const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
     core.info(`Latest release tag: ${releaseTag}`);
     return releaseTag;
@@ -32536,11 +32543,11 @@ async function releaseExists(octokit, owner, repo, tag) {
             },
         });
         console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
-        return response.data.id;
+        return response;
     }
     catch (error) {
         if (error.status === 404) {
-            console.log(`Release with tag ${tag} does not exist. Will create a new one.`);
+            console.log(`Release with tag ${tag} does not exist.`);
             return false;
         }
         throw error;
