@@ -3,6 +3,7 @@ import * as github from "@actions/github";
 import {
   createGithubRelease,
   extractVersionParts,
+  getReleaseBranches,
   getTag,
   publishLatestRelease,
 } from "./libs/git-utils";
@@ -100,17 +101,11 @@ async function findPreviousMinorBranch(
   console.log(
     `Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`,
   );
-  return await octokit
-    .request("GET /repos/{owner}/{repo}/branches/{branch}", {
-      owner,
-      repo,
-      branch: prevMinorReleaseBranch,
-      headers: {
-        "X-GitHub-Api-Version": "2026-03-10",
-      },
-    })
-    .then(() => prevMinorReleaseBranch)
-    .catch(() => undefined);
+  const releaseBranches = await getReleaseBranches(octokit, owner, repo);
+  if (releaseBranches.includes(prevMinorReleaseBranch)) {
+    return prevMinorReleaseBranch;
+  }
+  return undefined;
 }
 
 export async function getTicketsBetweenBranches(

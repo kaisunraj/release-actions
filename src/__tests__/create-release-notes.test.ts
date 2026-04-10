@@ -345,12 +345,12 @@ describe("generateReleaseNotes", () => {
     );
     expect(result).toBe(456);
     expect(mockOctokit.request).toHaveBeenNthCalledWith(
-      4,
+      3,
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
       expect.objectContaining({ tag: "v1.1.0" }),
     );
     expect(mockOctokit.request).toHaveBeenNthCalledWith(
-      5,
+      4,
       "POST /repos/{owner}/{repo}/releases",
       expect.objectContaining({
         tag_name: "v1.1.0",
