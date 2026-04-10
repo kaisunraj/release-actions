@@ -332,6 +332,7 @@ export async function createGithubRelease(
   releaseNotesContent: string,
   draft: boolean = true,
 ): Promise<number> {
+  console.log("Check if release already exists for tag:", releaseTag);
   const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
   if (releaseExistsId) {
     await updateRelease(
