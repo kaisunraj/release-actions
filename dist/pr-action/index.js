@@ -32249,7 +32249,7 @@ exports.sortReleaseVersions = sortReleaseVersions;
 exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
 exports.getTag = getTag;
-exports.getLatestDraftRelease = getLatestDraftRelease;
+exports.getLatestPreRelease = getLatestPreRelease;
 exports.listBranches = listBranches;
 exports.releaseExists = releaseExists;
 exports.createRelease = createRelease;
@@ -32357,14 +32357,14 @@ async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?rel
     return getTagFromBranchName(branchName, pattern);
 }
 /**
- * gets the latest draft release for a given repository.
+ * gets the latest prerelease release for a given repository.
  * @param octokit
  * @param owner
  * @param repo
- * @returns Returns the release id if found or -1 if no draft releases found.
+ * @returns Returns the release id if found or -1 if no prerelease releases found.
  */
-async function getLatestDraftRelease(octokit, owner, repo) {
-    console.log(`Fetching releases for ${owner}/${repo} to find latest draft releases...`);
+async function getLatestPreRelease(octokit, owner, repo) {
+    console.log(`Fetching releases for ${owner}/${repo} to find latest prerelease releases...`);
     const releases = await octokit.paginate(octokit.rest.repos.listReleases, {
         owner,
         repo,
@@ -32378,14 +32378,14 @@ async function getLatestDraftRelease(octokit, owner, repo) {
         return;
     }
     console.debug("Releases response:", releases);
-    const draftReleases = releases.filter((release) => release.draft);
-    if (draftReleases.length === 0) {
-        console.log("No draft releases found for repository.");
+    const prereleaseReleases = releases.filter((release) => release.prerelease);
+    if (prereleaseReleases.length === 0) {
+        console.log("No prerelease releases found for repository.");
         return;
     }
-    console.log("Found draft releases:", draftReleases.map((r) => r.tag_name));
-    // sort draft releases by version number and return the id of the latest one
-    const sortedDraftReleases = draftReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    console.log("Found prerelease releases:", prereleaseReleases.map((r) => r.tag_name));
+    // sort prerelease releases by version number and return the id of the latest one
+    const sortedDraftReleases = prereleaseReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
     return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
 }
 /**
@@ -32442,10 +32442,10 @@ async function releaseExists(octokit, owner, repo, tag) {
  * @param tag - The release tag to create (e.g. "v1.2.3").
  * @param releaseBranch - The target branch for the release (e.g. "releases/v1.2.3").
  * @param body - The release notes content to include in the release description.
- * @param draft - Whether to create the release as a draft (default: true). If false, the release will be published immediately.
+ * @param prerelease - Whether to create the release as a prerelease (default: true). If false, the release will be published immediately.
  * @returns The ID of the created release.
  */
-async function createRelease(octokit, owner, repo, tag, releaseBranch, body, draft = true) {
+async function createRelease(octokit, owner, repo, tag, releaseBranch, body, prerelease = true) {
     const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
         owner,
         repo,
@@ -32453,8 +32453,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body, dra
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: draft,
-        prerelease: false,
+        prerelease: prerelease,
         generate_release_notes: false,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
@@ -32468,9 +32467,9 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body, dra
  * @param tag - The release tag to update (e.g. "v1.2.3").
  * @param releaseBranch - The target branch for the release (e.g. "releases/v1.2.3").
  * @param body - The release notes content to include in the release description.
- * @param draft - Whether to keep the release as a draft (default: true). If false, the release will be published immediately.
+ * @param prerelease - Whether to keep the release as a prerelease (default: true). If false, the release will be published immediately.
  */
-async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body, draft = true) {
+async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch, body, prerelease = true) {
     await octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
         owner: owner,
         repo: repo,
@@ -32479,23 +32478,22 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
         target_commitish: releaseBranch.replace("origin/", ""),
         name: tag,
         body: body,
-        draft: draft,
-        prerelease: false,
+        prerelease: prerelease,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
         },
     });
 }
-async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft = true) {
+async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease = true) {
     console.log("Check if release already exists for tag:", releaseTag);
     const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
     if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, draft);
+        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, prerelease);
         console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
         return releaseExistsId;
     }
     else {
-        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, draft);
+        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease);
         console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
         return releaseId;
     }
@@ -32505,7 +32503,7 @@ async function publishDraftRelease(octokit, owner, repo, releaseId) {
         owner: owner,
         repo: repo,
         release_id: releaseId,
-        draft: false,
+        prerelease: false,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
         },
@@ -32513,7 +32511,7 @@ async function publishDraftRelease(octokit, owner, repo, releaseId) {
 }
 async function publishLatestRelease(octokit, owner, repo) {
     console.log("Publishing latest release...");
-    const releaseExistsId = await getLatestDraftRelease(octokit, owner, repo);
+    const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
     if (releaseExistsId) {
         console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
         await publishDraftRelease(octokit, owner, repo, releaseExistsId);

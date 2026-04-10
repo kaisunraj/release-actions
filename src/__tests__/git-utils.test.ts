@@ -15,7 +15,6 @@ const mockOctokit: any = github.getOctokit("fake-token");
 
 import {
   extractVersionParts,
-  getLatestDraftRelease,
   getLatestReleaseTag,
   getTagFromBranchName,
   listBranches,
@@ -26,6 +25,7 @@ import {
   publishDraftRelease,
   publishLatestRelease,
   getTag,
+  getLatestPreRelease,
 } from "../libs/git-utils";
 
 beforeEach(() => {
@@ -172,31 +172,31 @@ describe("getTag", () => {
   });
 });
 
-describe("getLatestDraftRelease", () => {
-  it("returns the id of the latest draft release", async () => {
+describe("getLatestPrereleaseRelease", () => {
+  it("returns the id of the latest prerelease release", async () => {
     const mockReleases = [
-      { id: 1, draft: false, tag_name: "v1.0.0" },
-      { id: 2, draft: true, tag_name: "v1.1.0" },
-      { id: 3, draft: true, tag_name: "v1.2.0" },
-      { id: 4, draft: false, tag_name: "v1.3.0" },
+      { id: 1, prerelease: false, tag_name: "v1.0.0" },
+      { id: 2, prerelease: true, tag_name: "v1.1.0" },
+      { id: 3, prerelease: true, tag_name: "v1.2.0" },
+      { id: 4, prerelease: false, tag_name: "v1.3.0" },
     ];
     require("@actions/github").__setMockPaginate(mockReleases);
-    const latestDraftReleaseId = await getLatestDraftRelease(
+    const latestPrereleaseReleaseId = await getLatestPreRelease(
       mockOctokit as any,
       "owner",
       "repo",
     );
-    expect(latestDraftReleaseId).toBe(3);
+    expect(latestPrereleaseReleaseId).toBe(3);
   });
 
   it("returns undefined when no releases are found", async () => {
     require("@actions/github").__setMockPaginate(undefined);
-    const latestDraftReleaseId = await getLatestDraftRelease(
+    const latestPrereleaseReleaseId = await getLatestPreRelease(
       mockOctokit as any,
       "owner",
       "repo",
     );
-    expect(latestDraftReleaseId).toBeUndefined();
+    expect(latestPrereleaseReleaseId).toBeUndefined();
   });
 
   it("returns undefined if no draft releases are found", async () => {
@@ -204,12 +204,12 @@ describe("getLatestDraftRelease", () => {
       { tag_name: "v1.0.0", id: 789, draft: false },
       { tag_name: "v1.0.1", id: 790, draft: false },
     ]);
-    const latestDraftReleaseId = await getLatestDraftRelease(
+    const latestPrereleaseReleaseId = await getLatestPreRelease(
       mockOctokit as any,
       "owner",
       "repo",
     );
-    expect(latestDraftReleaseId).toBeUndefined();
+    expect(latestPrereleaseReleaseId).toBeUndefined();
   });
 });
 
@@ -343,10 +343,10 @@ describe("createGithubRelease", () => {
 });
 
 describe("publishLatestRelease", () => {
-  it("returns undefined when no draft releases are found", async () => {
+  it("returns undefined when no prerelease releases are found", async () => {
     require("@actions/github").__setMockPaginate([
-      { tag_name: "v1.0.0", id: 789, draft: false },
-      { tag_name: "v1.0.1", id: 790, draft: false },
+      { tag_name: "v1.0.0", id: 789, prerelease: false },
+      { tag_name: "v1.0.1", id: 790, prerelease: false },
     ]);
     const result = await publishLatestRelease(
       mockOctokit as any,
@@ -356,12 +356,12 @@ describe("publishLatestRelease", () => {
     expect(result).toBeUndefined();
   });
 
-  it("publishes the latest draft release and returns its id", async () => {
+  it("publishes the latest prerelease and returns its id", async () => {
     require("@actions/github").__setMockPaginate([
-      { tag_name: "v1.0.0", id: 789, draft: false },
-      { tag_name: "v1.0.3", id: 792, draft: true },
-      { tag_name: "v1.0.2", id: 791, draft: true },
-      { tag_name: "v1.0.1", id: 790, draft: false },
+      { tag_name: "v1.0.0", id: 789, prerelease: false },
+      { tag_name: "v1.0.3", id: 792, prerelease: true },
+      { tag_name: "v1.0.2", id: 791, prerelease: true },
+      { tag_name: "v1.0.1", id: 790, prerelease: false },
     ]);
     mockOctokit.request.mockResolvedValueOnce({ data: { id: 792 } });
 

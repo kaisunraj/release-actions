@@ -229,10 +229,10 @@ describe("generateReleaseNotes", () => {
   it("returns the latest draft release id and publishes it when base and release branches are the same", async () => {
     setupMock();
     require("@actions/github").__setMockPaginate([
-      { tag_name: "v1.0.0", id: 789, draft: false },
-      { tag_name: "v1.0.3", id: 792, draft: true },
-      { tag_name: "v1.0.2", id: 791, draft: true },
-      { tag_name: "v1.0.1", id: 790, draft: false },
+      { tag_name: "v1.0.0", id: 789, prerelease: false },
+      { tag_name: "v1.0.3", id: 792, prerelease: true },
+      { tag_name: "v1.0.2", id: 791, prerelease: true },
+      { tag_name: "v1.0.1", id: 790, prerelease: false },
     ]);
     mockOctokit.request.mockResolvedValueOnce({ data: { id: 792 } });
 
@@ -248,7 +248,7 @@ describe("generateReleaseNotes", () => {
     expect(result).toBe(792);
     expect(mockOctokit.request).toHaveBeenCalledWith(
       "PATCH /repos/{owner}/{repo}/releases/{release_id}",
-      expect.objectContaining({ release_id: 792, draft: false }),
+      expect.objectContaining({ release_id: 792, prerelease: false }),
     );
   });
 
@@ -322,7 +322,7 @@ describe("generateReleaseNotes", () => {
         tag_name: "v1.1.0",
         name: "v1.1.0",
         body: "Jira Tickets:\n- https://confluenceSpace.atlassian.net/browse/OVP-1234\n- https://confluenceSpace.atlassian.net/browse/OVP-5678\n- https://confluenceSpace.atlassian.net/browse/OVP-9012",
-        draft: true,
+        prerelease: true,
       }),
     );
   });

@@ -3,7 +3,6 @@ import * as github from "@actions/github";
 import {
   createGithubRelease,
   getTag,
-  getTagFromBranchName,
   publishLatestRelease,
 } from "./libs/git-utils";
 
