@@ -97,6 +97,7 @@ async function findPreviousMinorBranch(
   }
   const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
   const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
+  console.log(`Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`);
   return await octokit
     .request("GET /repos/{owner}/{repo}/branches/{branch}", {
       owner,
