@@ -97,7 +97,9 @@ async function findPreviousMinorBranch(
   }
   const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
   const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
-  console.log(`Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`);
+  console.log(
+    `Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`,
+  );
   return await octokit
     .request("GET /repos/{owner}/{repo}/branches/{branch}", {
       owner,
@@ -135,7 +137,7 @@ export async function getTicketsBetweenBranches(
     );
     if (prevMinorVersionBranch) {
       console.log(
-        `Comparing against previous minor version branch ${prevMinorVersionBranch} instead of develop to get correct set of tickets for the release...`,
+        `Comparing against previous minor version branch ${prevMinorVersionBranch} instead of main to get correct set of tickets for the release...`,
       );
       baseBranch = prevMinorVersionBranch;
     } else {

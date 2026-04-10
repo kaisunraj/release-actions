@@ -32236,7 +32236,7 @@ async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, ba
     if (releaseBranch === "develop" && baseBranch === "main") {
         const prevMinorVersionBranch = await findPreviousMinorBranch(octokit, owner, repo, releaseTag);
         if (prevMinorVersionBranch) {
-            console.log(`Comparing against previous minor version branch ${prevMinorVersionBranch} instead of develop to get correct set of tickets for the release...`);
+            console.log(`Comparing against previous minor version branch ${prevMinorVersionBranch} instead of main to get correct set of tickets for the release...`);
             baseBranch = prevMinorVersionBranch;
         }
         else {
