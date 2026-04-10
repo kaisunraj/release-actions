@@ -32214,6 +32214,8 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
     const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
     console.log(`Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`);
     const releaseBranches = await (0, git_utils_1.getReleaseBranches)(octokit, owner, repo);
+    console.log(`Existing release branches:`, releaseBranches);
+    console.log(prevMinorReleaseBranch, releaseBranches.includes(prevMinorReleaseBranch));
     if (releaseBranches.includes(prevMinorReleaseBranch)) {
         return prevMinorReleaseBranch;
     }
