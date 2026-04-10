@@ -94,9 +94,10 @@ export async function getLatestReleaseTag(
   );
   const releaseBranchNames = await getReleaseBranches(octokit, owner, repo);
   if (releaseBranchNames.length === 0) {
-    throw new Error(
+    core.setFailed(
       "No release branches found matching pattern 'releases/v*.*.*'",
     );
+    return "";
   }
   const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
   core.info(`Latest release tag: ${releaseTag}`);
@@ -253,9 +254,7 @@ export async function releaseExists(
     return response;
   } catch (error: any) {
     if (error.status === 404) {
-      console.log(
-        `Release with tag ${tag} does not exist.`,
-      );
+      console.log(`Release with tag ${tag} does not exist.`);
       return false;
     }
     throw error;

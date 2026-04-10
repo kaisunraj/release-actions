@@ -186,7 +186,7 @@ describe("generateReleaseNotes", () => {
         "main",
         "releases/v1.0.0",
       ),
-    ).resolves.toBe(123);
+    ).resolves.toEqual({ data: { id: 123 } });
   });
 
   it("creates a new release and returns its id when none exists", async () => {
@@ -305,7 +305,7 @@ describe("generateReleaseNotes", () => {
         return Promise.resolve({ data: { name: "releases/v1.0.0" } });
       }
       if (url === "GET /repos/{owner}/{repo}/compare/{base}...{head}") {
-        expect(options.base).toBe("releases/v1.0.0");
+        expect(options.base).toBe("main");
         expect(options.head).toBe("develop");
         return Promise.resolve({
           data: {
@@ -345,12 +345,12 @@ describe("generateReleaseNotes", () => {
     );
     expect(result).toBe(456);
     expect(mockOctokit.request).toHaveBeenNthCalledWith(
-      3,
+      4,
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
       expect.objectContaining({ tag: "v1.1.0" }),
     );
     expect(mockOctokit.request).toHaveBeenNthCalledWith(
-      4,
+      5,
       "POST /repos/{owner}/{repo}/releases",
       expect.objectContaining({
         tag_name: "v1.1.0",

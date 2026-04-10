@@ -101,11 +101,15 @@ async function findPreviousMinorBranch(
   console.log(
     `Checking for existence of previous minor release ${prevMinorReleaseTag}...`,
   );
-  const prevMinorRelease = await releaseExists(octokit, owner, repo, prevMinorReleaseTag);
+  const prevMinorRelease = await releaseExists(
+    octokit,
+    owner,
+    repo,
+    prevMinorReleaseTag,
+  );
   if (!prevMinorRelease) {
     return undefined;
-  } 
-  console.log(prevMinorRelease);
+  }
   if (prevMinorRelease.data.prerelease === true) {
     console.log(
       `Previous minor release ${prevMinorReleaseTag} is a pre-release.`,
