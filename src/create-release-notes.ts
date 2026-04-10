@@ -86,6 +86,9 @@ export async function getTicketsBetweenBranches(
   releaseBranch: string,
   baseBranch: string = "develop",
 ): Promise<string[]> {
+  // Remove origin/ prefix if present for comparison
+  releaseBranch = releaseBranch.replace(/^origin\//, "");
+  baseBranch = baseBranch.replace(/^origin\//, "");
   console.log(
     `Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`,
   );

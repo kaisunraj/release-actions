@@ -32202,6 +32202,9 @@ function generateReleaseNotesContent(links) {
     return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
 async function getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch = "develop") {
+    // Remove origin/ prefix if present for comparison
+    releaseBranch = releaseBranch.replace(/^origin\//, "");
+    baseBranch = baseBranch.replace(/^origin\//, "");
     console.log(`Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`);
     const response = await octokit.request("GET /repos/{owner}/{repo}/compare/{base}...{head}", {
         owner,
