@@ -129,7 +129,8 @@ describe("getTicketsBetweenBranches", () => {
       "owner",
       "repo",
       "releases/v1.0.0",
-      "develop",
+      "main",
+      "v1.0.0",
     );
     expect(result).toEqual(["OVP-1234", "OVP-5678", "OVP-9012"]);
   });
@@ -229,10 +230,10 @@ describe("generateReleaseNotes", () => {
   it("returns the latest draft release id and publishes it when base and release branches are the same", async () => {
     setupMock();
     require("@actions/github").__setMockPaginate([
-      { tag_name: "v1.0.0", id: 789, draft: false },
-      { tag_name: "v1.0.3", id: 792, draft: true },
-      { tag_name: "v1.0.2", id: 791, draft: true },
-      { tag_name: "v1.0.1", id: 790, draft: false },
+      { tag_name: "v1.0.0", id: 789, prerelease: false },
+      { tag_name: "v1.0.3", id: 792, prerelease: true },
+      { tag_name: "v1.0.2", id: 791, prerelease: true },
+      { tag_name: "v1.0.1", id: 790, prerelease: false },
     ]);
     mockOctokit.request.mockResolvedValueOnce({ data: { id: 792 } });
 
@@ -248,7 +249,7 @@ describe("generateReleaseNotes", () => {
     expect(result).toBe(792);
     expect(mockOctokit.request).toHaveBeenCalledWith(
       "PATCH /repos/{owner}/{repo}/releases/{release_id}",
-      expect.objectContaining({ release_id: 792, draft: false }),
+      expect.objectContaining({ release_id: 792, prerelease: false }),
     );
   });
 
@@ -291,5 +292,73 @@ describe("generateReleaseNotes", () => {
       "main", // releaseBranch is the same as baseBranch
     );
     expect(result).toBeUndefined();
+  });
+
+  it("New release is create with next minor version when release branch is develop and createGithubReleaseTag is true", async () => {
+    require("@actions/github").__setMockPaginate([
+      { name: "releases/v1.0.0", id: 789, draft: false },
+      { name: "releases/v1.0.1", id: 790, draft: false },
+    ]);
+    mockOctokit.request.mockImplementation((url: string, options: any) => {
+      if (url === "GET /repos/{owner}/{repo}/branches/{branch}") {
+        expect(options.branch).toBe("releases/v1.0.0");
+        return Promise.resolve({ data: { name: "releases/v1.0.0" } });
+      }
+      if (url === "GET /repos/{owner}/{repo}/compare/{base}...{head}") {
+        expect(options.base).toBe("releases/v1.0.0");
+        expect(options.head).toBe("develop");
+        return Promise.resolve({
+          data: {
+            commits: [
+              {
+                commit: {
+                  message: "Merge pull request #100 from feature/OVP-9012",
+                },
+              },
+              { commit: { message: "feat: add support for OVP-1234" } },
+              { commit: { message: "fix: patch OVP-5678" } },
+            ],
+          },
+        });
+      }
+      if (url === "GET /repos/{owner}/{repo}/pulls/{pull_number}") {
+        expect(options.pull_number).toBe(100);
+        return Promise.resolve({
+          data: { head: { ref: "feature/OVP-9012" } },
+        });
+      }
+      if (url === "GET /repos/{owner}/{repo}/releases/tags/{tag}") {
+        return Promise.reject({ status: 404 });
+      }
+      if (url === "POST /repos/{owner}/{repo}/releases") {
+        return Promise.resolve({ data: { id: 456 } });
+      }
+      return Promise.reject(new Error(`Unexpected API call: ${url}`));
+    });
+    const result = await _generateReleaseNotes(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "confluenceSpace",
+      "main",
+      "develop",
+    );
+    expect(result).toBe(456);
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      4,
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      expect.objectContaining({ tag: "v1.1.0" }),
+    );
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      5,
+      "POST /repos/{owner}/{repo}/releases",
+      expect.objectContaining({
+        tag_name: "v1.1.0",
+        name: "v1.1.0",
+        body: "Jira Tickets:\n- https://confluenceSpace.atlassian.net/browse/OVP-9012\n- https://confluenceSpace.atlassian.net/browse/OVP-1234\n- https://confluenceSpace.atlassian.net/browse/OVP-5678",
+        prerelease: true,
+        target_commitish: "develop",
+      }),
+    );
   });
 });

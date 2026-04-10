@@ -2,8 +2,8 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {
   createGithubRelease,
-  getTagFromBranchName,
-  listBranches,
+  extractVersionParts,
+  getTag,
   publishLatestRelease,
 } from "./libs/git-utils";
 
@@ -79,16 +79,73 @@ function generateReleaseNotesContent(links: string[]) {
   return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
 }
 
+async function findPreviousMinorBranch(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseTag: string,
+): Promise<string | undefined> {
+  const versionParts = extractVersionParts(releaseTag);
+  if (versionParts.length < 2) {
+    return undefined;
+  }
+  if (
+    typeof versionParts[0] !== "number" ||
+    typeof versionParts[1] !== "number"
+  ) {
+    return undefined;
+  }
+  const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
+  const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
+  console.log(
+    `Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`,
+  );
+  return await octokit
+    .request("GET /repos/{owner}/{repo}/branches/{branch}", {
+      owner,
+      repo,
+      branch: prevMinorReleaseBranch,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    })
+    .then(() => prevMinorReleaseBranch)
+    .catch(() => undefined);
+}
+
 export async function getTicketsBetweenBranches(
   octokit: Octokit,
   owner: string,
   repo: string,
   releaseBranch: string,
-  baseBranch: string = "develop",
+  baseBranch: string = "main",
+  releaseTag: string,
 ): Promise<string[]> {
   // Remove origin/ prefix if present for comparison
   releaseBranch = releaseBranch.replace(/^origin\//, "");
   baseBranch = baseBranch.replace(/^origin\//, "");
+  // If the release branch is develop, the base branch in main and
+  // the previous minor version release branch exists
+  // we want to compare against the previous minor version release
+  // branch instead of develop to get the correct set of tickets for the release
+  if (releaseBranch === "develop" && baseBranch === "main") {
+    const prevMinorVersionBranch = await findPreviousMinorBranch(
+      octokit,
+      owner,
+      repo,
+      releaseTag,
+    );
+    if (prevMinorVersionBranch) {
+      console.log(
+        `Comparing against previous minor version branch ${prevMinorVersionBranch} instead of main to get correct set of tickets for the release...`,
+      );
+      baseBranch = prevMinorVersionBranch;
+    } else {
+      console.log(
+        `Previous minor version branch not found. Comparing against main...`,
+      );
+    }
+  }
   console.log(
     `Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`,
   );
@@ -158,13 +215,14 @@ async function generateReleaseNotes(
       return result;
     }
   }
-  const releaseTag = getTagFromBranchName(releaseBranch);
+  const releaseTag = await getTag(octokit, owner, repo, releaseBranch);
   const tickets = await getTicketsBetweenBranches(
     octokit,
     owner,
     repo,
     releaseBranch,
     baseBranch,
+    releaseTag,
   );
   if (tickets.length === 0) {
     core.info("No commits found between base branch and release branch.");
