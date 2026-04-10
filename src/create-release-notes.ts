@@ -2,7 +2,6 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {
   createGithubRelease,
-  getCommitMessages,
   getTagFromBranchName,
   listBranches,
   publishLatestRelease,
@@ -29,6 +28,44 @@ function filterJiraTickets(commitMessages: string[]) {
   return Array.from(tickets);
 }
 
+async function getMergedBranchNames(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commits: { commit: { message: string } }[],
+): Promise<string[]> {
+  const prNumbers = new Set<number>();
+  for (const commit of commits) {
+    const message = commit.commit.message;
+    const mergeMatch = message.match(/#\d+/);
+    if (mergeMatch) {
+      const prNo = Number(mergeMatch[0].slice(1));
+      prNumbers.add(prNo);
+    }
+  }
+  const mergedBranches = new Set<string>();
+  for (const prNo of prNumbers) {
+    try {
+      const prResponse = await octokit.request(
+        "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+        {
+          owner,
+          repo,
+          pull_number: prNo,
+          headers: {
+            "X-GitHub-Api-Version": "2026-03-10",
+          },
+        },
+      );
+      const pr = prResponse.data;
+      mergedBranches.add(pr.head.ref);
+    } catch (error) {
+      console.error(`Error fetching PR #${prNo}:`, error);
+    }
+  }
+  return Array.from(mergedBranches);
+}
+
 function generateJiraLinks(confluenceSpace: string, tickets: string[]) {
   return tickets.map(
     (ticket) => `https://${confluenceSpace}.atlassian.net/browse/${ticket}`,
@@ -40,6 +77,54 @@ function generateReleaseNotesContent(links: string[]) {
     return "No Jira tickets found for this release.";
   }
   return `Jira Tickets:\n${links.map((link) => `- ${link}`).join("\n")}`;
+}
+
+export async function getTicketsBetweenBranches(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  releaseBranch: string,
+  baseBranch: string = "develop",
+): Promise<string[]> {
+  console.log(
+    `Fetching tickets between branches ${baseBranch} and ${releaseBranch}...`,
+  );
+  const response = await octokit.request(
+    "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+    {
+      owner,
+      repo,
+      base: baseBranch,
+      head: releaseBranch,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    },
+  );
+  const commits = response.data.commits;
+  console.log(
+    `Found ${commits.length} commits between ${baseBranch} and ${releaseBranch}`,
+  );
+  const jiraTickets = filterJiraTickets(
+    commits.map(
+      (commit: { commit: { message: string } }) => commit.commit.message,
+    ),
+  );
+  const mergedBranches = await getMergedBranchNames(
+    octokit,
+    owner,
+    repo,
+    commits,
+  );
+  const mergedBranchTickets = filterJiraTickets(mergedBranches);
+  const allTickets = Array.from(
+    new Set([...jiraTickets, ...mergedBranchTickets]),
+  );
+  console.log(
+    `Extracted ${allTickets.length} unique Jira tickets:`,
+    allTickets,
+  );
+  return allTickets;
 }
 
 async function generateReleaseNotes(
@@ -71,9 +156,13 @@ async function generateReleaseNotes(
     }
   }
   const releaseTag = getTagFromBranchName(releaseBranch);
-  listBranches();
-  const commitMessages = await getCommitMessages(baseBranch, releaseBranch);
-  const tickets = filterJiraTickets(commitMessages);
+  const tickets = await getTicketsBetweenBranches(
+    octokit,
+    owner,
+    repo,
+    releaseBranch,
+    baseBranch,
+  );
   if (tickets.length === 0) {
     core.info("No commits found between base branch and release branch.");
     return;
@@ -127,7 +216,9 @@ export async function run() {
 
 export {
   filterJiraTickets as _filterJiraTickets,
+  getMergedBranchNames as _getMergedBranchNames,
   generateJiraLinks as _generateJiraLinks,
+  getTicketsBetweenBranches as _getTicketsBetweenBranches,
   generateReleaseNotes as _generateReleaseNotes,
   generateReleaseNotesContent as _generateReleaseNotesContent,
 };

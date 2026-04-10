@@ -15,7 +15,6 @@ const mockOctokit: any = github.getOctokit("fake-token");
 
 import {
   extractVersionParts,
-  getCommitMessages,
   getLatestDraftRelease,
   getLatestReleaseTag,
   getTagFromBranchName,
@@ -222,41 +221,6 @@ describe("listBranches", () => {
       callback(null, "", "Git error");
     });
     const result = listBranches();
-    return expect(result).rejects.toThrow("Error output: Git error");
-  });
-});
-
-describe("getCommitMessages", () => {
-  it("resolves with a list of commit messages when exec succeeds", () => {
-    const commitMessages = [
-      "feat: add new feature OVP-1234",
-      "fix: bug fix OVP-5678",
-      "chore: update dependencies",
-      "refactor: improve code structure OVP-9012",
-      "docs: update README OVP-3456",
-    ];
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, commitMessages.join("\n"), "");
-    });
-    const result = getCommitMessages("main", "releases/v1.0.0");
-    return expect(result).resolves.toEqual(commitMessages);
-  });
-
-  it("rejects with an error message when exec fails", () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(new Error("Git error"), "", "Git error");
-    });
-    const result = getCommitMessages("main", "releases/v1.0.0");
-    return expect(result).rejects.toThrow(
-      "Error fetching commit messages: Git error",
-    );
-  });
-
-  it("rejects with a stderr message when exec writes to stderr", () => {
-    mockExec.mockImplementation((command, callback) => {
-      callback(null, "", "Git error");
-    });
-    const result = getCommitMessages("main", "releases/v1.0.0");
     return expect(result).rejects.toThrow("Error output: Git error");
   });
 });

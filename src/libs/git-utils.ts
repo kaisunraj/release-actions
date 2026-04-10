@@ -192,37 +192,6 @@ export function listBranches(): Promise<string[]> {
 }
 
 /**
- * Gets the commit messages between two branches by executing "git log baseBranch..releaseBranch --pretty=format:%s" command.
- * @returns
- */
-export function getCommitMessages(
-  baseBranch: string,
-  releaseBranch: string,
-): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    exec(
-      `git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`,
-      (error: Error | null, stdout: string, stderr: string) => {
-        if (error) {
-          return reject(
-            new Error(`Error fetching commit messages: ${error.message}`),
-          );
-        }
-        if (stderr) {
-          return reject(new Error(`Error output: ${stderr}`));
-        }
-        const commitMessages = stdout
-          .split("\n")
-          .map((m) => m.trim())
-          .filter(Boolean);
-
-        resolve(commitMessages);
-      },
-    );
-  });
-}
-
-/**
  * Checks if a release with the given tag already exists in the repository.
  * @param tag - The release tag to check for existence (e.g. "v1.2.3").
  * @returns Returns the release id if found or false if no release with the given tag exists.

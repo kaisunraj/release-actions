@@ -32250,7 +32250,6 @@ exports.getLatestReleaseTag = getLatestReleaseTag;
 exports.getTagFromBranchName = getTagFromBranchName;
 exports.getLatestDraftRelease = getLatestDraftRelease;
 exports.listBranches = listBranches;
-exports.getCommitMessages = getCommitMessages;
 exports.releaseExists = releaseExists;
 exports.createRelease = createRelease;
 exports.updateRelease = updateRelease;
@@ -32396,27 +32395,6 @@ function listBranches() {
                 .filter(Boolean);
             console.debug("Branches:", branches);
             resolve(branches);
-        });
-    });
-}
-/**
- * Gets the commit messages between two branches by executing "git log baseBranch..releaseBranch --pretty=format:%s" command.
- * @returns
- */
-function getCommitMessages(baseBranch, releaseBranch) {
-    return new Promise((resolve, reject) => {
-        (0, child_process_1.exec)(`git log ${baseBranch}..${releaseBranch} --pretty=format:"%s"`, (error, stdout, stderr) => {
-            if (error) {
-                return reject(new Error(`Error fetching commit messages: ${error.message}`));
-            }
-            if (stderr) {
-                return reject(new Error(`Error output: ${stderr}`));
-            }
-            const commitMessages = stdout
-                .split("\n")
-                .map((m) => m.trim())
-                .filter(Boolean);
-            resolve(commitMessages);
         });
     });
 }
