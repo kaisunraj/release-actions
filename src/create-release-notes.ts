@@ -2,8 +2,8 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {
   createGithubRelease,
+  getTag,
   getTagFromBranchName,
-  listBranches,
   publishLatestRelease,
 } from "./libs/git-utils";
 
@@ -158,7 +158,7 @@ async function generateReleaseNotes(
       return result;
     }
   }
-  const releaseTag = getTagFromBranchName(releaseBranch);
+  const releaseTag = await getTag(octokit, owner, repo, releaseBranch);
   const tickets = await getTicketsBetweenBranches(
     octokit,
     owner,

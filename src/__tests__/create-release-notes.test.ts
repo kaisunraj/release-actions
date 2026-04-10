@@ -292,4 +292,38 @@ describe("generateReleaseNotes", () => {
     );
     expect(result).toBeUndefined();
   });
+
+  it("New release is create with next minor version when release branch is develop and createGithubReleaseTag is true", async () => {
+    require("@actions/github").__setMockPaginate([
+      { name: "releases/v1.0.0", id: 789, draft: false },
+      { name: "releases/v1.0.1", id: 790, draft: false },
+    ]);
+    setupMock();
+    mockOctokit.request.mockRejectedValueOnce({ status: 404 });
+    mockOctokit.request.mockResolvedValueOnce({ data: { id: 456 } });
+    const result = await _generateReleaseNotes(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "confluenceSpace",
+      "main",
+      "develop",
+    );
+    expect(result).toBe(456);
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      3,
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      expect.objectContaining({ tag: "v1.1.0" }),
+    );
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      4,
+      "POST /repos/{owner}/{repo}/releases",
+      expect.objectContaining({
+        tag_name: "v1.1.0",
+        name: "v1.1.0",
+        body: "Jira Tickets:\n- https://confluenceSpace.atlassian.net/browse/OVP-1234\n- https://confluenceSpace.atlassian.net/browse/OVP-5678\n- https://confluenceSpace.atlassian.net/browse/OVP-9012",
+        draft: true,
+      }),
+    );
+  });
 });

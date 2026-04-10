@@ -25,6 +25,7 @@ import {
   createGithubRelease,
   publishDraftRelease,
   publishLatestRelease,
+  getTag,
 } from "../libs/git-utils";
 
 beforeEach(() => {
@@ -136,7 +137,6 @@ describe("getTagFromBranchName", () => {
     ["releases/v1.2.3-beta", "v1.2.3-beta"],
     ["releases/v1", "v1"],
     ["origin/releases/v1.2.1", "v1.2.1"],
-    ["origin/develop", "develop"],
   ])("extracts tag from branch name '%s'", (branchName, expectedTag) => {
     const tag = getTagFromBranchName(branchName);
     expect(tag).toBe(expectedTag);
@@ -150,6 +150,26 @@ describe("getTagFromBranchName", () => {
       );
     },
   );
+});
+
+describe("getTag", () => {
+  it("return tag extracted from branch name when it is a release branch", async () => {
+    const branchName = "releases/v1.2.3";
+    const tag = await getTag(mockOctokit as any, "owner", "repo", branchName);
+    expect(tag).toBe("v1.2.3");
+  });
+
+  it("returns the next patch version when branch is develop", async () => {
+    const branchName = "develop";
+    const mockBranches = [
+      { name: "releases/v1.2.3" },
+      { name: "releases/v1.2.4" },
+      { name: "releases/v1.3.0" },
+    ];
+    require("@actions/github").__setMockListBranches(mockBranches);
+    const tag = await getTag(mockOctokit as any, "owner", "repo", branchName);
+    expect(tag).toBe("v1.3.0");
+  });
 });
 
 describe("getLatestDraftRelease", () => {
