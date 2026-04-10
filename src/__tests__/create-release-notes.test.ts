@@ -129,7 +129,8 @@ describe("getTicketsBetweenBranches", () => {
       "owner",
       "repo",
       "releases/v1.0.0",
-      "develop",
+      "main",
+      "v1.0.0",
     );
     expect(result).toEqual(["OVP-1234", "OVP-5678", "OVP-9012"]);
   });
