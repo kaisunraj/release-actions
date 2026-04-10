@@ -32421,7 +32421,6 @@ async function getLatestReleaseTag(octokit, owner, repo) {
             "X-GitHub-Api-Version": "2026-03-10",
         },
     });
-    console.debug("Branches response:", branches);
     // Find branches that match the pattern "releases/v*.*.*" or "origin/releases/v*.*.* "
     const releaseBranches = branches.filter((branch) => /^(\w+\/)?releases\/v\d+(\.\d+){0,2}$/.test(branch.name));
     if (releaseBranches.length === 0) {
