@@ -32434,7 +32434,7 @@ async function releaseExists(octokit, owner, repo, tag) {
             },
         });
         console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
-        return response.data.id;
+        return response;
     }
     catch (error) {
         if (error.status === 404) {

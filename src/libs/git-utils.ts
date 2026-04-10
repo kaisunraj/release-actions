@@ -234,7 +234,7 @@ export async function releaseExists(
   owner: string,
   repo: string,
   tag: string,
-): Promise<number | false> {
+): Promise<any> {
   try {
     const response = await octokit.request(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
@@ -250,7 +250,7 @@ export async function releaseExists(
     console.log(
       `Release with tag ${tag} already exists with id ${response.data.id}`,
     );
-    return response.data.id;
+    return response;
   } catch (error: any) {
     if (error.status === 404) {
       console.log(

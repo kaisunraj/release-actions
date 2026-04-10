@@ -6,6 +6,7 @@ import {
   getReleaseBranches,
   getTag,
   publishLatestRelease,
+  releaseExists,
 } from "./libs/git-utils";
 
 export type Octokit = ReturnType<typeof github.getOctokit>;
@@ -97,14 +98,18 @@ async function findPreviousMinorBranch(
     return undefined;
   }
   const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
-  const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
   console.log(
-    `Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`,
+    `Checking for existence of previous minor release ${prevMinorReleaseTag}...`,
   );
-  const releaseBranches = await getReleaseBranches(octokit, owner, repo);
-  console.log(`Existing release branches:`, releaseBranches);
-  console.log(prevMinorReleaseBranch, releaseBranches.includes(prevMinorReleaseBranch));
-  if (releaseBranches.includes(prevMinorReleaseBranch)) {
+  const prevMinorRelease = await releaseExists(octokit, owner, repo, prevMinorReleaseTag);
+  if (!prevMinorRelease) {
+    return undefined;
+  } 
+  if (prevMinorRelease.prelease === true) {
+    console.log(
+      `Previous minor release ${prevMinorReleaseTag} is a pre-release.`,
+    );
+    const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
     return prevMinorReleaseBranch;
   }
   return undefined;

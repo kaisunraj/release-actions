@@ -32211,12 +32211,14 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
         return undefined;
     }
     const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
-    const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
-    console.log(`Checking for existence of previous minor release branch ${prevMinorReleaseBranch}...`);
-    const releaseBranches = await (0, git_utils_1.getReleaseBranches)(octokit, owner, repo);
-    console.log(`Existing release branches:`, releaseBranches);
-    console.log(prevMinorReleaseBranch, releaseBranches.includes(prevMinorReleaseBranch));
-    if (releaseBranches.includes(prevMinorReleaseBranch)) {
+    console.log(`Checking for existence of previous minor release ${prevMinorReleaseTag}...`);
+    const prevMinorRelease = await (0, git_utils_1.releaseExists)(octokit, owner, repo, prevMinorReleaseTag);
+    if (!prevMinorRelease) {
+        return undefined;
+    }
+    if (prevMinorRelease.prelease === true) {
+        console.log(`Previous minor release ${prevMinorReleaseTag} is a pre-release.`);
+        const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
         return prevMinorReleaseBranch;
     }
     return undefined;
@@ -32540,7 +32542,7 @@ async function releaseExists(octokit, owner, repo, tag) {
             },
         });
         console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
-        return response.data.id;
+        return response;
     }
     catch (error) {
         if (error.status === 404) {
