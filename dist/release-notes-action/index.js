@@ -32216,6 +32216,7 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
     if (!prevMinorRelease) {
         return undefined;
     }
+    console.log(prevMinorRelease);
     if (prevMinorRelease.prelease === true) {
         console.log(`Previous minor release ${prevMinorReleaseTag} is a pre-release.`);
         const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;

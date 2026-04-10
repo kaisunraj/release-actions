@@ -105,6 +105,7 @@ async function findPreviousMinorBranch(
   if (!prevMinorRelease) {
     return undefined;
   } 
+  console.log(prevMinorRelease);
   if (prevMinorRelease.prelease === true) {
     console.log(
       `Previous minor release ${prevMinorReleaseTag} is a pre-release.`,
