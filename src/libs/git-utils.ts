@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
 import { exec } from "child_process";
 import { Octokit } from "../create-release-notes";
+import { release } from "os";
 
 /**
  *
@@ -99,9 +100,22 @@ export async function getLatestReleaseTag(
     );
     return "";
   }
-  const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
-  core.info(`Latest release tag: ${releaseTag}`);
-  return releaseTag;
+  releaseBranchNames.reverse();
+  for (const branchName of releaseBranchNames) {
+    const tagName = getTagFromBranchName(branchName);
+    const existingRelease = await releaseExists(octokit, owner, repo, tagName);
+    if (!existingRelease) {
+      return branchName;
+    }
+    if (existingRelease?.prerelease) {
+      console.log(
+        `Release with tag ${tagName} is a prerelease. Continuing to check next latest release branch...`,
+      );
+      continue;
+    }
+    return branchName;
+  }
+  return "";
 }
 
 /**
