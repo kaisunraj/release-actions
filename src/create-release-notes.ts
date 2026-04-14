@@ -3,7 +3,6 @@ import * as github from "@actions/github";
 import {
   createGithubRelease,
   extractVersionParts,
-  getReleaseBranches,
   getTag,
   publishLatestRelease,
   releaseExists,
@@ -99,7 +98,7 @@ async function findPreviousMinorBranch(
   }
   const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
   console.log(
-    `Checking for existence of previous minor release ${prevMinorReleaseTag}...`,
+    `Checking for existence of previous minor prerelease ${prevMinorReleaseTag}...`,
   );
   const prevMinorRelease = await releaseExists(
     octokit,
@@ -108,6 +107,9 @@ async function findPreviousMinorBranch(
     prevMinorReleaseTag,
   );
   if (!prevMinorRelease) {
+    console.log(
+      `Previous minor ${prevMinorReleaseTag} does not exist or is not a prerelease.`,
+    );
     return undefined;
   }
   if (prevMinorRelease.prerelease === true) {

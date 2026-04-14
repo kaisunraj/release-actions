@@ -152,11 +152,11 @@ export async function getTag(
 }
 
 /**
- * gets the latest prerelease release for a given repository.
+ * gets the first prerelease release for the given repository. If no prerelease releases are found, returns undefined.
  * @param octokit
  * @param owner
  * @param repo
- * @returns Returns the release id if found or -1 if no prerelease releases found.
+ * @returns Returns the release id if found or undefined if no prerelease releases found.
  */
 export async function getLatestPreRelease(
   octokit: InstanceType<typeof GitHub>,
@@ -234,7 +234,7 @@ export async function releaseExists(
   owner: string,
   repo: string,
   tag: string,
-): Promise<{ id: number , prerelease: boolean } | undefined> {
+): Promise<{ id: number; prerelease: boolean } | undefined> {
   try {
     const response = await octokit.request(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
@@ -247,7 +247,6 @@ export async function releaseExists(
         },
       },
     );
-    console.log(response);
     console.log(
       `Release with tag ${tag} already exists with id ${response.data.id}`,
     );
@@ -277,7 +276,7 @@ export async function createRelease(
   releaseBranch: string,
   body: string,
   prerelease: boolean = true,
-) {
+): Promise<{ id: number }> {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
     {
@@ -294,7 +293,7 @@ export async function createRelease(
       },
     },
   );
-  return response.data.id;
+  return { id: response.data.id };
 }
 
 /**
@@ -357,7 +356,7 @@ export async function createGithubRelease(
     );
     return existingRelease.id;
   } else {
-    const releaseId = await createRelease(
+    const releaseResp = await createRelease(
       octokit,
       owner,
       repo,
@@ -367,9 +366,9 @@ export async function createGithubRelease(
       prerelease,
     );
     console.log(
-      `Created new release with tag ${releaseTag} and id ${releaseId}`,
+      `Created new release with tag ${releaseTag} and id ${releaseResp.id}`,
     );
-    return releaseId;
+    return releaseResp.id;
   }
 }
 
