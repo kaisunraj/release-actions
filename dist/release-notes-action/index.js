@@ -32601,11 +32601,11 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
 }
 async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease = true) {
     console.log("Check if release already exists for tag:", releaseTag);
-    const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
-    if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, prerelease);
-        console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
-        return releaseExistsId;
+    const existingRelease = await releaseExists(octokit, owner, repo, releaseTag);
+    if (existingRelease) {
+        await updateRelease(octokit, owner, repo, existingRelease.id, releaseTag, releaseBranch, releaseNotesContent, prerelease);
+        console.log(`Updated existing release with tag ${releaseTag} and id ${existingRelease}`);
+        return existingRelease;
     }
     else {
         const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease);

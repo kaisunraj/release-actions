@@ -339,22 +339,22 @@ export async function createGithubRelease(
   prerelease: boolean = true,
 ): Promise<number> {
   console.log("Check if release already exists for tag:", releaseTag);
-  const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
-  if (releaseExistsId) {
+  const existingRelease = await releaseExists(octokit, owner, repo, releaseTag);
+  if (existingRelease) {
     await updateRelease(
       octokit,
       owner,
       repo,
-      releaseExistsId,
+      existingRelease.id,
       releaseTag,
       releaseBranch,
       releaseNotesContent,
       prerelease,
     );
     console.log(
-      `Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`,
+      `Updated existing release with tag ${releaseTag} and id ${existingRelease}`,
     );
-    return releaseExistsId;
+    return existingRelease;
   } else {
     const releaseId = await createRelease(
       octokit,
