@@ -248,7 +248,7 @@ export async function releaseExists(
       },
     );
     console.log(
-      `Release with tag ${tag} already exists with id ${response.data.id}`,
+      `Release with tag ${tag} already exists with id ${response.data}`,
     );
     return response;
   } catch (error: any) {
