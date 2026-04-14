@@ -194,7 +194,7 @@ export async function getLatestPreRelease(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[1]?.id;
+  return sortedDraftReleases[sortedDraftReleases.length]?.id;
 }
 
 /**
