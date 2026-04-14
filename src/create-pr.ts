@@ -64,13 +64,87 @@ async function createPullRequest(
   return { prNumber: pr.number, html_url: pr.html_url };
 }
 
+async function checkMergeConflicts(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+  baseBranch: string,
+  targetBranch: string,
+): Promise<boolean> {
+  const response = await octokit.request(
+    "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+    {
+      owner,
+      repo,
+      base: baseBranch,
+      head: targetBranch,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    },
+  );
+  if (response.data.status === "diverged") {
+    console.log(
+      `Branches '${baseBranch}' and '${targetBranch}' have diverged. Merge conflicts detected.`,
+    );
+    return true;
+  }
+  console.log(
+    `Branches '${baseBranch}' and '${targetBranch}' do not have merge conflicts.`,
+  );
+  return false;
+}
+
+async function getBranchHeadSha(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<string> {
+  const response = await octokit.request(
+    "GET /repos/{owner}/{repo}/branches/{branch}",
+    {
+      owner,
+      repo,
+      branch,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    },
+  );
+  return response.data.commit.sha;
+}
+
+async function createConflictResolutionBranch(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+  baseBranch: string,
+  targetBranch: string,
+): Promise<string> {
+  const conflictBranchName = `feature/OVP-0000-conflict-resolution-${targetBranch}-into-${baseBranch}`;
+  console.log(
+    `Creating conflict resolution branch '${conflictBranchName}' from '${targetBranch}'...`,
+  );
+  await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
+    owner,
+    repo,
+    ref: `refs/heads/${conflictBranchName}`,
+    sha: await getBranchHeadSha(octokit, owner, repo, targetBranch),
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+  return conflictBranchName;
+}
+
 /**
  * Main function to run the action
  */
 async function run(): Promise<void> {
   const token = core.getInput("github-token", { required: true });
   const baseBranch = core.getInput("base-branch", { required: true });
-  const targetBranch = core.getInput("target-branch", { required: true });
+  let targetBranch = core.getInput("target-branch", { required: true });
 
   const octokit = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
@@ -94,7 +168,26 @@ async function run(): Promise<void> {
     core.notice(`Existing pull request found: ${existingPrUrl}`);
     return;
   }
-
+  const hasMergeConflicts = await checkMergeConflicts(
+    octokit,
+    owner,
+    repo,
+    baseBranch,
+    targetBranch,
+  );
+  if (hasMergeConflicts) {
+    const conflictBranchName = await createConflictResolutionBranch(
+      octokit,
+      owner,
+      repo,
+      baseBranch,
+      targetBranch,
+    );
+    core.notice(
+      `Merge conflicts detected between '${baseBranch}' and '${targetBranch}'. Created conflict resolution branch '${conflictBranchName}''.`,
+    );
+    targetBranch = conflictBranchName;
+  }
   // 3. Create the pull request
   const prTitle = `Main into Develop for Release ${releaseTag}`;
 
@@ -114,6 +207,9 @@ async function run(): Promise<void> {
 
 export {
   run,
+  getBranchHeadSha as _getBranchHeadSha,
+  createConflictResolutionBranch as _createConflictResolutionBranch,
+  checkMergeConflicts as _checkMergeConflicts,
   checkExistingPr as _checkExistingPr,
   createPullRequest as _createPullRequest,
 };
