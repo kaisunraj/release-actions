@@ -277,6 +277,10 @@ export async function createRelease(
   body: string,
   prerelease: boolean = true,
 ): Promise<{ id: number }> {
+  // Validate release tag format (e.g. v1.2.3)
+  if (!/^v\d+(\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?$/.test(tag)) {
+    throw new Error(`Invalid release tag format: ${tag}`);
+  }
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
     {

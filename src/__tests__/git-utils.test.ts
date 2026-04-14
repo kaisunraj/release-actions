@@ -286,17 +286,32 @@ describe("releaseExists", () => {
 });
 
 describe("createRelease", () => {
-  it("returns the id of the newly created release", async () => {
+  it.each(
+    [["v1.9.0"], ["v1.9.0"], ["v1.9"], ["v1.9.0-beta"], ["v1.9.0-rc.1"]],)(
+    "returns the id of the newly created release", async (tag) => {
     mockOctokit.request.mockResolvedValue({ data: { id: 456 } });
     const result = await createRelease(
       mockOctokit as any,
       "owner",
       "repo",
-      "tag",
+      tag,
       "releaseBranch",
       "body",
     );
     expect(result).toEqual({ id: 456 });
+  });
+
+  it("throws an error when the release tag format is invalid", async () => {
+    await expect(
+      createRelease(
+        mockOctokit as any,
+        "owner",
+        "repo",
+        "release/v1.9.0",
+        "releaseBranch",
+        "body",
+      ),
+    ).rejects.toThrow("Invalid release tag format: release/v1.9.0");
   });
 });
 

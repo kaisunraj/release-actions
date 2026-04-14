@@ -158,18 +158,6 @@ async function run(): Promise<void> {
   }
   const releaseTag = getTagFromBranchName(releaseBranch);
 
-  // 2. Check for an existing open PR from target into base
-  const existingPrUrl = await checkExistingPr(
-    octokit,
-    owner,
-    repo,
-    targetBranch,
-    baseBranch,
-  );
-  if (existingPrUrl) {
-    core.notice(`Existing pull request found: ${existingPrUrl}`);
-    return;
-  }
   const hasMergeConflicts = await checkMergeConflicts(
     octokit,
     owner,
@@ -190,6 +178,19 @@ async function run(): Promise<void> {
       `Merge conflicts detected between '${baseBranch}' and '${targetBranch}'. Created conflict resolution branch '${conflictBranchName}''.`,
     );
     targetBranch = conflictBranchName;
+  }
+
+  // 2. Check for an existing open PR from target into base
+  const existingPrUrl = await checkExistingPr(
+    octokit,
+    owner,
+    repo,
+    targetBranch,
+    baseBranch,
+  );
+  if (existingPrUrl) {
+    core.notice(`Existing pull request found: ${existingPrUrl}`);
+    return;
   }
   // 3. Create the pull request
   const prTitle = `Main into Develop for Release ${releaseTag}`;
