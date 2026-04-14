@@ -373,7 +373,7 @@ export async function createGithubRelease(
   }
 }
 
-export async function publishDraftRelease(
+export async function publishPrerelease(
   octokit: Octokit,
   owner: string,
   repo: string,
@@ -384,6 +384,7 @@ export async function publishDraftRelease(
     repo: repo,
     release_id: releaseId,
     prerelease: false,
+    make_latest: "true",
     headers: {
       "X-GitHub-Api-Version": "2026-03-10",
     },
@@ -401,7 +402,7 @@ export async function publishLatestRelease(
     console.log(
       `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
     );
-    await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+    await publishPrerelease(octokit, owner, repo, releaseExistsId);
     console.log(`Published latest release with id ${releaseExistsId}`);
     return releaseExistsId;
   }

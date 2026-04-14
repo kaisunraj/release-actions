@@ -32256,7 +32256,7 @@ exports.releaseExists = releaseExists;
 exports.createRelease = createRelease;
 exports.updateRelease = updateRelease;
 exports.createGithubRelease = createGithubRelease;
-exports.publishDraftRelease = publishDraftRelease;
+exports.publishPrerelease = publishPrerelease;
 exports.publishLatestRelease = publishLatestRelease;
 const core = __importStar(__nccwpck_require__(7484));
 const child_process_1 = __nccwpck_require__(5317);
@@ -32506,12 +32506,13 @@ async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBran
         return releaseId;
     }
 }
-async function publishDraftRelease(octokit, owner, repo, releaseId) {
+async function publishPrerelease(octokit, owner, repo, releaseId) {
     return octokit.request("PATCH /repos/{owner}/{repo}/releases/{release_id}", {
         owner: owner,
         repo: repo,
         release_id: releaseId,
         prerelease: false,
+        make_latest: "true",
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
         },
@@ -32522,7 +32523,7 @@ async function publishLatestRelease(octokit, owner, repo) {
     const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
     if (releaseExistsId) {
         console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
-        await publishDraftRelease(octokit, owner, repo, releaseExistsId);
+        await publishPrerelease(octokit, owner, repo, releaseExistsId);
         console.log(`Published latest release with id ${releaseExistsId}`);
         return releaseExistsId;
     }
