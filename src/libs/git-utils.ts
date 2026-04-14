@@ -194,7 +194,7 @@ export async function getLatestPreRelease(
     "Found prerelease releases:",
     sortedPreReleases.map((r: { tag_name: string }) => r.tag_name),
   );
-  return sortedPreReleases[1];
+  return sortedPreReleases[0];
 }
 
 /**

@@ -32501,7 +32501,7 @@ async function getLatestPreRelease(octokit, owner, repo) {
     // sort prerelease releases by version number and return the id of the oldest one
     const sortedPreReleases = prereleaseReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
     console.log("Found prerelease releases:", sortedPreReleases.map((r) => r.tag_name));
-    return sortedPreReleases[1];
+    return sortedPreReleases[0];
 }
 /**
  * Lists all branches in the current git repository by executing "git branch -a" command.
