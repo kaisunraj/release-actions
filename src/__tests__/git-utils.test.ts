@@ -22,7 +22,7 @@ import {
   releaseExists,
   createRelease,
   createGithubRelease,
-  publishDraftRelease,
+  publishPrerelease,
   publishLatestRelease,
   getTag,
   getLatestPreRelease,
@@ -297,7 +297,7 @@ describe("createRelease", () => {
 describe("publishDraftRelease", () => {
   it("returns the response from the API when publishing succeeds", async () => {
     mockOctokit.request.mockResolvedValue({ data: { id: 789 } });
-    const result = await publishDraftRelease(
+    const result = await publishPrerelease(
       mockOctokit as any,
       "owner",
       "repo",
