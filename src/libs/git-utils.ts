@@ -185,16 +185,16 @@ export async function getLatestPreRelease(
     console.log("No prerelease releases found for repository.");
     return;
   }
-  console.log(
-    "Found prerelease releases:",
-    prereleaseReleases.map((r: { tag_name: string }) => r.tag_name),
-  );
   // sort prerelease releases by version number and return the id of the oldest one
-  const sortedDraftReleases = prereleaseReleases.sort(
+  const sortedPreReleases = prereleaseReleases.sort(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[sortedDraftReleases.length - 1];
+  console.log(
+    "Found prerelease releases:",
+    sortedPreReleases.map((r: { tag_name: string }) => r.tag_name),
+  );
+  return sortedPreReleases[1];
 }
 
 /**
