@@ -401,7 +401,7 @@ export async function publishLatestRelease(
     console.log(
       `Latest release ${firstPrerelease.name} with id ${firstPrerelease.id} already exists. Updating it to publish...`,
     );
-    // await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
+    await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
     console.log(`Published latest release with id ${firstPrerelease.id}`);
     return firstPrerelease.id;
   }
