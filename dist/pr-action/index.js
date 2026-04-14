@@ -32239,17 +32239,17 @@ async function run() {
         return;
     }
     const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
-    // 2. Check for an existing open PR from target into base
-    const existingPrUrl = await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
-    if (existingPrUrl) {
-        core.notice(`Existing pull request found: ${existingPrUrl}`);
-        return;
-    }
     const hasMergeConflicts = await checkMergeConflicts(octokit, owner, repo, baseBranch, targetBranch);
     if (hasMergeConflicts) {
         const conflictBranchName = await createConflictResolutionBranch(octokit, owner, repo, baseBranch, targetBranch, releaseBranch);
         core.notice(`Merge conflicts detected between '${baseBranch}' and '${targetBranch}'. Created conflict resolution branch '${conflictBranchName}''.`);
         targetBranch = conflictBranchName;
+    }
+    // 2. Check for an existing open PR from target into base
+    const existingPrUrl = await checkExistingPr(octokit, owner, repo, targetBranch, baseBranch);
+    if (existingPrUrl) {
+        core.notice(`Existing pull request found: ${existingPrUrl}`);
+        return;
     }
     // 3. Create the pull request
     const prTitle = `Main into Develop for Release ${releaseTag}`;
@@ -32510,6 +32510,10 @@ async function releaseExists(octokit, owner, repo, tag) {
  * @returns The ID of the created release.
  */
 async function createRelease(octokit, owner, repo, tag, releaseBranch, body, prerelease = true) {
+    // Validate release tag format (e.g. v1.2.3)
+    if (!/^v\d+(\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?$/.test(tag)) {
+        throw new Error(`Invalid release tag format: ${tag}`);
+    }
     const response = await octokit.request("POST /repos/{owner}/{repo}/releases", {
         owner,
         repo,

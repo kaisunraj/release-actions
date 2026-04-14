@@ -191,7 +191,7 @@ describe("run", () => {
         status: "ahead",
       },
     });
-    
+
     require("@actions/github").__setMockPaginate([
       { name: "releases/v1.0.0" },
       { name: "releases/v1.2.0" },
