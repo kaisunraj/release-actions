@@ -32153,6 +32153,7 @@ async function checkExistingPr(octokit, owner, repo, targetBranch, baseBranch) {
         base: baseBranch,
     });
     for (const pr of existingPRs) {
+        console.log(`Found PR #${pr.number}: ${pr.html_url} (head: ${pr.head.ref}, base: ${pr.base.ref})`);
         const isOpen = pr.state === "open";
         const baseMatches = pr.base.ref === baseBranch;
         const headMatches = pr.head.ref === targetBranch;
