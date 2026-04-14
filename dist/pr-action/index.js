@@ -32392,6 +32392,7 @@ async function getLatestReleaseTag(octokit, owner, repo) {
         const tagName = getTagFromBranchName(branchName);
         const existingRelease = await releaseExists(octokit, owner, repo, tagName);
         if (!existingRelease) {
+            console.log(`No existing release found for branch ${branchName} with tag ${tagName}. Using this branch as the latest release...`);
             return branchName;
         }
         if (existingRelease?.prerelease) {
