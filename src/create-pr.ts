@@ -21,18 +21,17 @@ async function checkExistingPr(
     owner,
     repo,
     state: "open",
-    head: targetBranch,
+    sort: "created",
     base: baseBranch,
   });
 
-  if (existingPRs.length > 0) {
-    const existing = existingPRs[0];
-    const isOpen = existing.state === "open";
-    const baseMatches = existing.base.ref === baseBranch;
-    const headMatches = existing.head.ref === targetBranch;
+  for (const pr of existingPRs) {
+    const isOpen = pr.state === "open";
+    const baseMatches = pr.base.ref === baseBranch;
+    const headMatches = pr.head.ref === targetBranch;
     if (isOpen && baseMatches && headMatches) {
-      console.log(`Existing PR found: ${existing.html_url}`);
-      return existing.html_url;
+      console.log(`Existing PR found: ${pr.html_url}`);
+      return pr.html_url;
     }
   }
   return;
