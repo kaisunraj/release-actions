@@ -32493,7 +32493,6 @@ async function getLatestPreRelease(octokit, owner, repo) {
         console.log("No releases found for repository.");
         return;
     }
-    console.debug("Releases response:", releases);
     const prereleaseReleases = releases.filter((release) => release.prerelease);
     if (prereleaseReleases.length === 0) {
         console.log("No prerelease releases found for repository.");

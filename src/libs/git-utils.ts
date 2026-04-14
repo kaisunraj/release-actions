@@ -178,7 +178,6 @@ export async function getLatestPreRelease(
     console.log("No releases found for repository.");
     return;
   }
-  console.debug("Releases response:", releases);
   const prereleaseReleases = releases.filter(
     (release: { prerelease: boolean }) => release.prerelease,
   );
