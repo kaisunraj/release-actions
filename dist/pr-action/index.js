@@ -32370,11 +32370,11 @@ async function getTag(octokit, owner, repo, branchName, pattern = /^(?:.*\/)?rel
     return getTagFromBranchName(branchName, pattern);
 }
 /**
- * gets the latest prerelease release for a given repository.
+ * gets the first prerelease release for the given repository. If no prerelease releases are found, returns undefined.
  * @param octokit
  * @param owner
  * @param repo
- * @returns Returns the release id if found or -1 if no prerelease releases found.
+ * @returns Returns the release id if found or undefined if no prerelease releases found.
  */
 async function getLatestPreRelease(octokit, owner, repo) {
     console.log(`Fetching releases for ${owner}/${repo} to find latest prerelease releases...`);
@@ -32390,16 +32390,15 @@ async function getLatestPreRelease(octokit, owner, repo) {
         console.log("No releases found for repository.");
         return;
     }
-    console.debug("Releases response:", releases);
     const prereleaseReleases = releases.filter((release) => release.prerelease);
     if (prereleaseReleases.length === 0) {
         console.log("No prerelease releases found for repository.");
         return;
     }
-    console.log("Found prerelease releases:", prereleaseReleases.map((r) => r.tag_name));
-    // sort prerelease releases by version number and return the id of the latest one
-    const sortedDraftReleases = prereleaseReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
-    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+    // sort prerelease releases by version number and return the id of the oldest one
+    const sortedPreReleases = prereleaseReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
+    console.log("Found prerelease releases:", sortedPreReleases.map((r) => r.tag_name));
+    return sortedPreReleases[0];
 }
 /**
  * Lists all branches in the current git repository by executing "git branch -a" command.
@@ -32440,12 +32439,12 @@ async function releaseExists(octokit, owner, repo, tag) {
             },
         });
         console.log(`Release with tag ${tag} already exists with id ${response.data.id}`);
-        return response;
+        return { id: response.data.id, prerelease: response.data.prerelease };
     }
     catch (error) {
         if (error.status === 404) {
             console.log(`Release with tag ${tag} does not exist.`);
-            return false;
+            return undefined;
         }
         throw error;
     }
@@ -32472,7 +32471,7 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body, pre
             "X-GitHub-Api-Version": "2026-03-10",
         },
     });
-    return response.data.id;
+    return { id: response.data.id };
 }
 /**
  * Updates an existing release in the specified repository with the given tag, target branch, and release notes content. The release to update is identified by the provided release ID.
@@ -32499,16 +32498,16 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
 }
 async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease = true) {
     console.log("Check if release already exists for tag:", releaseTag);
-    const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
-    if (releaseExistsId) {
-        await updateRelease(octokit, owner, repo, releaseExistsId, releaseTag, releaseBranch, releaseNotesContent, prerelease);
-        console.log(`Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`);
-        return releaseExistsId;
+    const existingRelease = await releaseExists(octokit, owner, repo, releaseTag);
+    if (existingRelease) {
+        await updateRelease(octokit, owner, repo, existingRelease.id, releaseTag, releaseBranch, releaseNotesContent, prerelease);
+        console.log(`Updated existing release with tag ${releaseTag} and id ${existingRelease.id}`);
+        return existingRelease.id;
     }
     else {
-        const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease);
-        console.log(`Created new release with tag ${releaseTag} and id ${releaseId}`);
-        return releaseId;
+        const releaseResp = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease);
+        console.log(`Created new release with tag ${releaseTag} and id ${releaseResp.id}`);
+        return releaseResp.id;
     }
 }
 async function publishPrerelease(octokit, owner, repo, releaseId) {
@@ -32525,12 +32524,12 @@ async function publishPrerelease(octokit, owner, repo, releaseId) {
 }
 async function publishLatestRelease(octokit, owner, repo) {
     console.log("Publishing latest release...");
-    const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
-    if (releaseExistsId) {
-        console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
-        await publishPrerelease(octokit, owner, repo, releaseExistsId);
-        console.log(`Published latest release with id ${releaseExistsId}`);
-        return releaseExistsId;
+    const firstPrerelease = await getLatestPreRelease(octokit, owner, repo);
+    if (firstPrerelease) {
+        console.log(`Latest release ${firstPrerelease.name} with id ${firstPrerelease.id} already exists. Updating it to publish...`);
+        await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
+        console.log(`Published latest release with id ${firstPrerelease.id}`);
+        return firstPrerelease.id;
     }
     return;
 }

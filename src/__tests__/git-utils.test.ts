@@ -181,22 +181,26 @@ describe("getLatestPrereleaseRelease", () => {
       { id: 4, prerelease: false, tag_name: "v1.3.0" },
     ];
     require("@actions/github").__setMockPaginate(mockReleases);
-    const latestPrereleaseReleaseId = await getLatestPreRelease(
+    const latestPrereleaseRelease = await getLatestPreRelease(
       mockOctokit as any,
       "owner",
       "repo",
     );
-    expect(latestPrereleaseReleaseId).toBe(3);
+    expect(latestPrereleaseRelease).toEqual({
+      id: 2,
+      prerelease: true,
+      tag_name: "v1.1.0",
+    });
   });
 
   it("returns undefined when no releases are found", async () => {
     require("@actions/github").__setMockPaginate(undefined);
-    const latestPrereleaseReleaseId = await getLatestPreRelease(
+    const latestPrereleaseRelease = await getLatestPreRelease(
       mockOctokit as any,
       "owner",
       "repo",
     );
-    expect(latestPrereleaseReleaseId).toBeUndefined();
+    expect(latestPrereleaseRelease).toBeUndefined();
   });
 
   it("returns undefined if no draft releases are found", async () => {
@@ -246,7 +250,7 @@ describe("listBranches", () => {
 });
 
 describe("releaseExists", () => {
-  it("returns false when the release does not exist (404)", async () => {
+  it("returns undefined when the release does not exist (404)", async () => {
     mockOctokit.request.mockRejectedValue({ status: 404 });
     const result = await releaseExists(
       mockOctokit as any,
@@ -254,18 +258,20 @@ describe("releaseExists", () => {
       "repo",
       "tag",
     );
-    expect(result).toBe(false);
+    expect(result).toBe(undefined);
   });
 
   it("returns the release id when the release exists", async () => {
-    mockOctokit.request.mockResolvedValue({ data: { id: 123 } });
+    mockOctokit.request.mockResolvedValue({
+      data: { id: 123, prerelease: true },
+    });
     const result = await releaseExists(
       mockOctokit as any,
       "owner",
       "repo",
       "tag",
     );
-    expect(result).toEqual({ data: { id: 123 } });
+    expect(result).toEqual({ id: 123, prerelease: true });
   });
 
   it("throws on non-404 errors", async () => {
@@ -290,7 +296,7 @@ describe("createRelease", () => {
       "releaseBranch",
       "body",
     );
-    expect(result).toBe(456);
+    expect(result).toEqual({ id: 456 });
   });
 });
 
@@ -320,7 +326,7 @@ describe("createGithubRelease", () => {
       "releases/v1.0.0",
       "Release notes content",
     );
-    expect(result).toEqual({ data: { id: 789 } });
+    expect(result).toEqual(789);
   });
 
   it("creates and returns a new release id when the release does not exist", async () => {
@@ -370,6 +376,6 @@ describe("publishLatestRelease", () => {
       "owner",
       "repo",
     );
-    expect(result).toEqual(792);
+    expect(result).toEqual(791);
   });
 });

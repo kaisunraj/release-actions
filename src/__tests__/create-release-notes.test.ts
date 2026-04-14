@@ -1,11 +1,3 @@
-jest.mock("child_process", () => ({
-  exec: jest.fn(),
-}));
-
-const { exec: mockExec } = jest.requireMock("child_process") as {
-  exec: jest.Mock;
-};
-
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 
@@ -22,7 +14,6 @@ import {
   _getMergedBranchNames,
   _getTicketsBetweenBranches,
 } from "../create-release-notes";
-import { mock } from "node:test";
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -186,7 +177,7 @@ describe("generateReleaseNotes", () => {
         "main",
         "releases/v1.0.0",
       ),
-    ).resolves.toEqual({ data: { id: 123 } });
+    ).resolves.toEqual(123);
   });
 
   it("creates a new release and returns its id when none exists", async () => {
@@ -246,10 +237,10 @@ describe("generateReleaseNotes", () => {
       "main", // baseBranch and releaseBranch are the same
     );
 
-    expect(result).toBe(792);
+    expect(result).toBe(791);
     expect(mockOctokit.request).toHaveBeenCalledWith(
       "PATCH /repos/{owner}/{repo}/releases/{release_id}",
-      expect.objectContaining({ release_id: 792, prerelease: false }),
+      expect.objectContaining({ release_id: 791, prerelease: false }),
     );
   });
 

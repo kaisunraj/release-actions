@@ -66,7 +66,12 @@ describe("run", () => {
 
   it("does not create a PR when one already exists", async () => {
     require("@actions/github").__setMockPullsList([
-      { html_url: "https://github.com/owner/repo/pull/1" , state: "open" , head: { ref: "develop" }, base: { ref: "main" } },
+      {
+        html_url: "https://github.com/owner/repo/pull/1",
+        state: "open",
+        head: { ref: "develop" },
+        base: { ref: "main" },
+      },
     ]);
 
     await run();
@@ -84,7 +89,12 @@ describe("run", () => {
 describe("_checkExistingPr", () => {
   it("returns the PR url when an open PR already exists", async () => {
     require("@actions/github").__setMockPullsList([
-      { html_url: "https://github.com/owner/repo/pull/1", state: "open", head: { ref: "develop" }, base: { ref: "main" } },
+      {
+        html_url: "https://github.com/owner/repo/pull/1",
+        state: "open",
+        head: { ref: "develop" },
+        base: { ref: "main" },
+      },
     ]);
 
     const result = await _checkExistingPr(

@@ -152,17 +152,17 @@ export async function getTag(
 }
 
 /**
- * gets the latest prerelease release for a given repository.
+ * gets the first prerelease release for the given repository. If no prerelease releases are found, returns undefined.
  * @param octokit
  * @param owner
  * @param repo
- * @returns Returns the release id if found or -1 if no prerelease releases found.
+ * @returns Returns the release id if found or undefined if no prerelease releases found.
  */
 export async function getLatestPreRelease(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
   repo: string,
-): Promise<number | undefined> {
+): Promise<any | undefined> {
   console.log(
     `Fetching releases for ${owner}/${repo} to find latest prerelease releases...`,
   );
@@ -178,7 +178,6 @@ export async function getLatestPreRelease(
     console.log("No releases found for repository.");
     return;
   }
-  console.debug("Releases response:", releases);
   const prereleaseReleases = releases.filter(
     (release: { prerelease: boolean }) => release.prerelease,
   );
@@ -186,16 +185,16 @@ export async function getLatestPreRelease(
     console.log("No prerelease releases found for repository.");
     return;
   }
-  console.log(
-    "Found prerelease releases:",
-    prereleaseReleases.map((r: { tag_name: string }) => r.tag_name),
-  );
-  // sort prerelease releases by version number and return the id of the latest one
-  const sortedDraftReleases = prereleaseReleases.sort(
+  // sort prerelease releases by version number and return the id of the oldest one
+  const sortedPreReleases = prereleaseReleases.sort(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+  console.log(
+    "Found prerelease releases:",
+    sortedPreReleases.map((r: { tag_name: string }) => r.tag_name),
+  );
+  return sortedPreReleases[0];
 }
 
 /**
@@ -235,7 +234,7 @@ export async function releaseExists(
   owner: string,
   repo: string,
   tag: string,
-): Promise<any> {
+): Promise<{ id: number; prerelease: boolean } | undefined> {
   try {
     const response = await octokit.request(
       "GET /repos/{owner}/{repo}/releases/tags/{tag}",
@@ -251,11 +250,11 @@ export async function releaseExists(
     console.log(
       `Release with tag ${tag} already exists with id ${response.data.id}`,
     );
-    return response;
+    return { id: response.data.id, prerelease: response.data.prerelease };
   } catch (error: any) {
     if (error.status === 404) {
       console.log(`Release with tag ${tag} does not exist.`);
-      return false;
+      return undefined;
     }
     throw error;
   }
@@ -277,7 +276,7 @@ export async function createRelease(
   releaseBranch: string,
   body: string,
   prerelease: boolean = true,
-) {
+): Promise<{ id: number }> {
   const response = await octokit.request(
     "POST /repos/{owner}/{repo}/releases",
     {
@@ -294,7 +293,7 @@ export async function createRelease(
       },
     },
   );
-  return response.data.id;
+  return { id: response.data.id };
 }
 
 /**
@@ -340,24 +339,24 @@ export async function createGithubRelease(
   prerelease: boolean = true,
 ): Promise<number> {
   console.log("Check if release already exists for tag:", releaseTag);
-  const releaseExistsId = await releaseExists(octokit, owner, repo, releaseTag);
-  if (releaseExistsId) {
+  const existingRelease = await releaseExists(octokit, owner, repo, releaseTag);
+  if (existingRelease) {
     await updateRelease(
       octokit,
       owner,
       repo,
-      releaseExistsId,
+      existingRelease.id,
       releaseTag,
       releaseBranch,
       releaseNotesContent,
       prerelease,
     );
     console.log(
-      `Updated existing release with tag ${releaseTag} and id ${releaseExistsId}`,
+      `Updated existing release with tag ${releaseTag} and id ${existingRelease.id}`,
     );
-    return releaseExistsId;
+    return existingRelease.id;
   } else {
-    const releaseId = await createRelease(
+    const releaseResp = await createRelease(
       octokit,
       owner,
       repo,
@@ -367,9 +366,9 @@ export async function createGithubRelease(
       prerelease,
     );
     console.log(
-      `Created new release with tag ${releaseTag} and id ${releaseId}`,
+      `Created new release with tag ${releaseTag} and id ${releaseResp.id}`,
     );
-    return releaseId;
+    return releaseResp.id;
   }
 }
 
@@ -397,14 +396,14 @@ export async function publishLatestRelease(
   repo: string,
 ): Promise<number | undefined> {
   console.log("Publishing latest release...");
-  const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
-  if (releaseExistsId) {
+  const firstPrerelease = await getLatestPreRelease(octokit, owner, repo);
+  if (firstPrerelease) {
     console.log(
-      `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
+      `Latest release ${firstPrerelease.name} with id ${firstPrerelease.id} already exists. Updating it to publish...`,
     );
-    await publishPrerelease(octokit, owner, repo, releaseExistsId);
-    console.log(`Published latest release with id ${releaseExistsId}`);
-    return releaseExistsId;
+    await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
+    console.log(`Published latest release with id ${firstPrerelease.id}`);
+    return firstPrerelease.id;
   }
   return;
 }
