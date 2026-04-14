@@ -27,8 +27,10 @@ async function checkExistingPr(
 
   if (existingPRs.length > 0) {
     const existing = existingPRs[0];
-    console.log(`Existing PR found: ${existing.html_url}`);
-    return existing.html_url;
+    if (existing.state === "open") {
+      console.log(`Existing PR found: ${existing.html_url}`);
+      return existing.html_url;
+    }
   }
   return;
 }
