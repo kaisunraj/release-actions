@@ -249,9 +249,9 @@ export async function releaseExists(
     );
     console.log(response);
     console.log(
-      `Release with tag ${tag} already exists with id ${response.id}`,
+      `Release with tag ${tag} already exists with id ${response.data.id}`,
     );
-    return { id: response.id, prerelease: response.prerelease };
+    return { id: response.data.id, prerelease: response.data.prerelease };
   } catch (error: any) {
     if (error.status === 404) {
       console.log(`Release with tag ${tag} does not exist.`);
