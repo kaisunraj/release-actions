@@ -32216,7 +32216,7 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
     if (!prevMinorRelease) {
         return undefined;
     }
-    if (prevMinorRelease.data.prerelease === true) {
+    if (prevMinorRelease.prerelease === true) {
         console.log(`Previous minor release ${prevMinorReleaseTag} is a pre-release.`);
         const prevMinorReleaseBranch = `releases/${prevMinorReleaseTag}`;
         return prevMinorReleaseBranch;
@@ -32541,8 +32541,8 @@ async function releaseExists(octokit, owner, repo, tag) {
                 "X-GitHub-Api-Version": "2026-03-10",
             },
         });
-        console.log(`Release with tag ${tag} already exists with id ${response.data}`);
-        return response;
+        console.log(`Release with tag ${tag} already exists with id ${response.id}`);
+        return { id: response.id, prerelease: response.prerelease };
     }
     catch (error) {
         if (error.status === 404) {

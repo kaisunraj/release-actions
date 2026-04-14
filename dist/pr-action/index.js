@@ -32438,8 +32438,8 @@ async function releaseExists(octokit, owner, repo, tag) {
                 "X-GitHub-Api-Version": "2026-03-10",
             },
         });
-        console.log(`Release with tag ${tag} already exists with id ${response.data}`);
-        return response;
+        console.log(`Release with tag ${tag} already exists with id ${response.id}`);
+        return { id: response.id, prerelease: response.prerelease };
     }
     catch (error) {
         if (error.status === 404) {
