@@ -32444,7 +32444,7 @@ async function releaseExists(octokit, owner, repo, tag) {
     catch (error) {
         if (error.status === 404) {
             console.log(`Release with tag ${tag} does not exist.`);
-            return false;
+            return undefined;
         }
         throw error;
     }
@@ -32501,8 +32501,8 @@ async function createGithubRelease(octokit, owner, repo, releaseTag, releaseBran
     const existingRelease = await releaseExists(octokit, owner, repo, releaseTag);
     if (existingRelease) {
         await updateRelease(octokit, owner, repo, existingRelease.id, releaseTag, releaseBranch, releaseNotesContent, prerelease);
-        console.log(`Updated existing release with tag ${releaseTag} and id ${existingRelease}`);
-        return existingRelease;
+        console.log(`Updated existing release with tag ${releaseTag} and id ${existingRelease.id}`);
+        return existingRelease.id;
     }
     else {
         const releaseId = await createRelease(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent, prerelease);

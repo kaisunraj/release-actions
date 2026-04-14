@@ -254,7 +254,7 @@ export async function releaseExists(
   } catch (error: any) {
     if (error.status === 404) {
       console.log(`Release with tag ${tag} does not exist.`);
-      return false;
+      return undefined;
     }
     throw error;
   }
@@ -352,9 +352,9 @@ export async function createGithubRelease(
       prerelease,
     );
     console.log(
-      `Updated existing release with tag ${releaseTag} and id ${existingRelease}`,
+      `Updated existing release with tag ${releaseTag} and id ${existingRelease.id}`,
     );
-    return existingRelease;
+    return existingRelease.id;
   } else {
     const releaseId = await createRelease(
       octokit,
