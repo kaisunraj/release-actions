@@ -32398,7 +32398,7 @@ async function getLatestPreRelease(octokit, owner, repo) {
     console.log("Found prerelease releases:", prereleaseReleases.map((r) => r.tag_name));
     // sort prerelease releases by version number and return the id of the oldest one
     const sortedDraftReleases = prereleaseReleases.sort((a, b) => sortReleaseVersions(a.tag_name, b.tag_name));
-    return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+    return sortedDraftReleases[sortedDraftReleases.length - 1];
 }
 /**
  * Lists all branches in the current git repository by executing "git branch -a" command.
@@ -32524,12 +32524,12 @@ async function publishPrerelease(octokit, owner, repo, releaseId) {
 }
 async function publishLatestRelease(octokit, owner, repo) {
     console.log("Publishing latest release...");
-    const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
-    if (releaseExistsId) {
-        console.log(`Latest release with id ${releaseExistsId} already exists. Updating it to publish...`);
-        await publishPrerelease(octokit, owner, repo, releaseExistsId);
-        console.log(`Published latest release with id ${releaseExistsId}`);
-        return releaseExistsId;
+    const firstPrerelease = await getLatestPreRelease(octokit, owner, repo);
+    if (firstPrerelease) {
+        console.log(`Latest release ${firstPrerelease.name} with id ${firstPrerelease.id} already exists. Updating it to publish...`);
+        await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
+        console.log(`Published latest release with id ${firstPrerelease.id}`);
+        return firstPrerelease.id;
     }
     return;
 }

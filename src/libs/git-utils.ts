@@ -162,7 +162,7 @@ export async function getLatestPreRelease(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
   repo: string,
-): Promise<number | undefined> {
+): Promise<any | undefined> {
   console.log(
     `Fetching releases for ${owner}/${repo} to find latest prerelease releases...`,
   );
@@ -194,7 +194,7 @@ export async function getLatestPreRelease(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+  return sortedDraftReleases[sortedDraftReleases.length - 1];
 }
 
 /**
@@ -396,14 +396,14 @@ export async function publishLatestRelease(
   repo: string,
 ): Promise<number | undefined> {
   console.log("Publishing latest release...");
-  const releaseExistsId = await getLatestPreRelease(octokit, owner, repo);
-  if (releaseExistsId) {
+  const firstPrerelease = await getLatestPreRelease(octokit, owner, repo);
+  if (firstPrerelease) {
     console.log(
-      `Latest release with id ${releaseExistsId} already exists. Updating it to publish...`,
+      `Latest release ${firstPrerelease.name} with id ${firstPrerelease.id} already exists. Updating it to publish...`,
     );
-    await publishPrerelease(octokit, owner, repo, releaseExistsId);
-    console.log(`Published latest release with id ${releaseExistsId}`);
-    return releaseExistsId;
+    await publishPrerelease(octokit, owner, repo, firstPrerelease.id);
+    console.log(`Published latest release with id ${firstPrerelease.id}`);
+    return firstPrerelease.id;
   }
   return;
 }
