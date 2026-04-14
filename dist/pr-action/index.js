@@ -32209,8 +32209,9 @@ async function getBranchHeadSha(octokit, owner, repo, branch) {
     });
     return response.data.commit.sha;
 }
-async function createConflictResolutionBranch(octokit, owner, repo, baseBranch, targetBranch) {
-    const conflictBranchName = `feature/OVP-0000-conflict-resolution-${targetBranch}-into-${baseBranch}`;
+async function createConflictResolutionBranch(octokit, owner, repo, baseBranch, targetBranch, releaseBranch) {
+    const releaseTag = (0, git_utils_1.getTagFromBranchName)(releaseBranch);
+    const conflictBranchName = `feature/OVP-0000-conflict-resolution-${targetBranch}-into-${baseBranch}-for-${releaseTag}`;
     console.log(`Creating conflict resolution branch '${conflictBranchName}' from '${targetBranch}'...`);
     await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
         owner,
@@ -32246,7 +32247,7 @@ async function run() {
     }
     const hasMergeConflicts = await checkMergeConflicts(octokit, owner, repo, baseBranch, targetBranch);
     if (hasMergeConflicts) {
-        const conflictBranchName = await createConflictResolutionBranch(octokit, owner, repo, baseBranch, targetBranch);
+        const conflictBranchName = await createConflictResolutionBranch(octokit, owner, repo, baseBranch, targetBranch, releaseBranch);
         core.notice(`Merge conflicts detected between '${baseBranch}' and '${targetBranch}'. Created conflict resolution branch '${conflictBranchName}''.`);
         targetBranch = conflictBranchName;
     }

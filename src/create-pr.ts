@@ -121,8 +121,10 @@ async function createConflictResolutionBranch(
   repo: string,
   baseBranch: string,
   targetBranch: string,
+  releaseBranch: string,
 ): Promise<string> {
-  const conflictBranchName = `feature/OVP-0000-conflict-resolution-${targetBranch}-into-${baseBranch}`;
+  const releaseTag = getTagFromBranchName(releaseBranch);
+  const conflictBranchName = `feature/OVP-0000-conflict-resolution-${targetBranch}-into-${baseBranch}-for-${releaseTag}`;
   console.log(
     `Creating conflict resolution branch '${conflictBranchName}' from '${targetBranch}'...`,
   );
@@ -182,6 +184,7 @@ async function run(): Promise<void> {
       repo,
       baseBranch,
       targetBranch,
+      releaseBranch,
     );
     core.notice(
       `Merge conflicts detected between '${baseBranch}' and '${targetBranch}'. Created conflict resolution branch '${conflictBranchName}''.`,

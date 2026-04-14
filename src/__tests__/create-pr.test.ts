@@ -128,16 +128,17 @@ describe("createConflictResolutionBranch", () => {
       "repo",
       "main",
       "develop",
+      "releases/v1.2.1",
     );
     expect(result).toBe(
-      "feature/OVP-0000-conflict-resolution-develop-into-main",
+      "feature/OVP-0000-conflict-resolution-develop-into-main-for-v1.2.1",
     );
     expect(mockOctokit.request).toHaveBeenCalledWith(
       "POST /repos/{owner}/{repo}/git/refs",
       {
         owner: "owner",
         repo: "repo",
-        ref: "refs/heads/feature/OVP-0000-conflict-resolution-develop-into-main",
+        ref: "refs/heads/feature/OVP-0000-conflict-resolution-develop-into-main-for-v1.2.1",
         sha: "fake-sha",
         headers: {
           "X-GitHub-Api-Version": "2026-03-10",
