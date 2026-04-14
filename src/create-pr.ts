@@ -152,7 +152,7 @@ async function run(): Promise<void> {
   const { owner, repo } = github.context.repo;
 
   // 1. Get the latest release tag
-  const releaseBranch = await getLatestReleaseTag(octokit, owner, repo);
+  const releaseBranch = await getLatestReleaseTag(octokit, owner, repo, true);
   if (!releaseBranch) {
     return;
   }

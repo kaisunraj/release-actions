@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import { GitHub } from "@actions/github/lib/utils";
 import { exec } from "child_process";
 import { Octokit } from "../create-release-notes";
+import { release } from "os";
 
 /**
  *
@@ -88,6 +89,7 @@ export async function getLatestReleaseTag(
   octokit: InstanceType<typeof GitHub>,
   owner: string,
   repo: string,
+  ensureReleaseExists: boolean = false,
 ): Promise<string> {
   console.log(
     `Fetching branches for ${owner}/${repo} to find latest release tag...`,
@@ -99,9 +101,34 @@ export async function getLatestReleaseTag(
     );
     return "";
   }
-  const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
-  core.info(`Latest release tag: ${releaseTag}`);
-  return releaseTag;
+  if (ensureReleaseExists) {
+    releaseBranchNames.reverse();
+    for (const branchName of releaseBranchNames) {
+      const tagName = getTagFromBranchName(branchName);
+      const existingRelease = await releaseExists(
+        octokit,
+        owner,
+        repo,
+        tagName,
+      );
+      if (!existingRelease) {
+        console.log(
+          `No existing release found for branch ${branchName} with tag ${tagName}. Skipping...`,
+        );
+        continue;
+      }
+      if (existingRelease?.prerelease) {
+        console.log(
+          `Release with tag ${tagName} is a prerelease. Continuing to check next latest release branch...`,
+        );
+        continue;
+      }
+      return branchName;
+    }
+  } else {
+    return releaseBranchNames[releaseBranchNames.length - 1];
+  }
+  return "";
 }
 
 /**

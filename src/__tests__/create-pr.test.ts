@@ -152,6 +152,18 @@ describe("run", () => {
   it("executes the full workflow and creates a PR with the correct title", async () => {
     mockOctokit.request.mockResolvedValueOnce({
       data: {
+        id: 1,
+        prerelease: true,
+      },
+    });
+    mockOctokit.request.mockResolvedValueOnce({
+      data: {
+        id: 2,
+        prerelease: false,
+      },
+    });
+    mockOctokit.request.mockResolvedValueOnce({
+      data: {
         status: "ahead",
       },
     });
@@ -179,13 +191,19 @@ describe("run", () => {
     expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
       owner: "owner",
       repo: "repo",
-      title: "Main into Develop for Release v1.2.1",
+      title: "Main into Develop for Release v1.2.0",
       head: "develop",
       base: "main",
     });
   });
 
   it("does not create a PR when one already exists", async () => {
+    mockOctokit.request.mockResolvedValueOnce({
+      data: {
+        id: 1,
+        prerelease: false,
+      },
+    });
     mockOctokit.request.mockResolvedValueOnce({
       data: {
         status: "ahead",

@@ -32432,16 +32432,33 @@ async function getReleaseBranches(octokit, owner, repo) {
  * Gets the latest release tag by looking for branches that match the pattern "releases/v*.*.*"
  * and returning the one with the highest version number
  */
-async function getLatestReleaseTag(octokit, owner, repo) {
+async function getLatestReleaseTag(octokit, owner, repo, ensureReleaseExists = false) {
     console.log(`Fetching branches for ${owner}/${repo} to find latest release tag...`);
     const releaseBranchNames = await getReleaseBranches(octokit, owner, repo);
     if (releaseBranchNames.length === 0) {
         core.setFailed("No release branches found matching pattern 'releases/v*.*.*'");
         return "";
     }
-    const releaseTag = releaseBranchNames[releaseBranchNames.length - 1];
-    core.info(`Latest release tag: ${releaseTag}`);
-    return releaseTag;
+    if (ensureReleaseExists) {
+        releaseBranchNames.reverse();
+        for (const branchName of releaseBranchNames) {
+            const tagName = getTagFromBranchName(branchName);
+            const existingRelease = await releaseExists(octokit, owner, repo, tagName);
+            if (!existingRelease) {
+                console.log(`No existing release found for branch ${branchName} with tag ${tagName}. Skipping...`);
+                continue;
+            }
+            if (existingRelease?.prerelease) {
+                console.log(`Release with tag ${tagName} is a prerelease. Continuing to check next latest release branch...`);
+                continue;
+            }
+            return branchName;
+        }
+    }
+    else {
+        return releaseBranchNames[releaseBranchNames.length - 1];
+    }
+    return "";
 }
 /**
  * Extracts the version tag from a branch name.
