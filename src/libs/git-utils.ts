@@ -190,12 +190,12 @@ export async function getLatestPreRelease(
     "Found prerelease releases:",
     prereleaseReleases.map((r: { tag_name: string }) => r.tag_name),
   );
-  // sort prerelease releases by version number and return the id of the latest one
+  // sort prerelease releases by version number and return the id of the first one
   const sortedDraftReleases = prereleaseReleases.sort(
     (a: { tag_name: string }, b: { tag_name: string }) =>
       sortReleaseVersions(a.tag_name, b.tag_name),
   );
-  return sortedDraftReleases[sortedDraftReleases.length - 1]?.id;
+  return sortedDraftReleases[1]?.id;
 }
 
 /**
