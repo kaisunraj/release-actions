@@ -100,6 +100,12 @@ async function findPreviousMinorBranch(
   console.log(
     `Checking for existence of previous minor prerelease ${prevMinorReleaseTag}...`,
   );
+  if (versionParts[1] === 0) {
+    console.log(
+      `Previous minor release tag ${prevMinorReleaseTag} is not valid since minor version is 0.`,
+    );
+    return undefined;
+  }
   const prevMinorRelease = await releaseExists(
     octokit,
     owner,
@@ -233,15 +239,21 @@ async function generateReleaseNotes(
     baseBranch,
     releaseTag,
   );
+  let releaseNotesContent: string;
+  let links: string[] = [];
   if (tickets.length === 0) {
-    core.info("No commits found between base branch and release branch.");
-    return;
+    core.info(
+      "No commits found between base branch and release branch. Creating release notes with no Jira tickets.",
+    );
+    releaseNotesContent = "No Jira tickets found for this release.";
+    links = [];
+  } else {
+    console.log("Jira Tickets:", tickets);
+    links = generateJiraLinks(confluenceSpace, tickets);
+    console.log("Jira Links:", links);
+    releaseNotesContent = generateReleaseNotesContent(links);
+    console.log("Release Notes Content:", releaseNotesContent);
   }
-  console.log("Jira Tickets:", tickets);
-  const links = generateJiraLinks(confluenceSpace, tickets);
-  console.log("Jira Links:", links);
-  const releaseNotesContent = generateReleaseNotesContent(links);
-  console.log("Release Notes Content:", releaseNotesContent);
   if (createReleaseTag === true) {
     console.log(`Creating/updating GitHub release for tag ${releaseTag}...`);
     return await createGithubRelease(
@@ -287,6 +299,7 @@ export async function run() {
 export {
   filterJiraTickets as _filterJiraTickets,
   getMergedBranchNames as _getMergedBranchNames,
+  findPreviousMinorBranch as _findPreviousMinorBranch,
   generateJiraLinks as _generateJiraLinks,
   getTicketsBetweenBranches as _getTicketsBetweenBranches,
   generateReleaseNotes as _generateReleaseNotes,
