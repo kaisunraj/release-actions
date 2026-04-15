@@ -32278,15 +32278,20 @@ async function generateReleaseNotes(octokit, owner, repo, confluenceSpace, baseB
     }
     const releaseTag = await (0, git_utils_1.getTag)(octokit, owner, repo, releaseBranch);
     const tickets = await getTicketsBetweenBranches(octokit, owner, repo, releaseBranch, baseBranch, releaseTag);
+    let releaseNotesContent;
+    let links = [];
     if (tickets.length === 0) {
-        core.info("No commits found between base branch and release branch.");
-        return;
+        core.info("No commits found between base branch and release branch. Creating release notes with no Jira tickets.");
+        releaseNotesContent = "No Jira tickets found for this release.";
+        links = [];
     }
-    console.log("Jira Tickets:", tickets);
-    const links = generateJiraLinks(confluenceSpace, tickets);
-    console.log("Jira Links:", links);
-    const releaseNotesContent = generateReleaseNotesContent(links);
-    console.log("Release Notes Content:", releaseNotesContent);
+    else {
+        console.log("Jira Tickets:", tickets);
+        links = generateJiraLinks(confluenceSpace, tickets);
+        console.log("Jira Links:", links);
+        releaseNotesContent = generateReleaseNotesContent(links);
+        console.log("Release Notes Content:", releaseNotesContent);
+    }
     if (createReleaseTag === true) {
         console.log(`Creating/updating GitHub release for tag ${releaseTag}...`);
         return await (0, git_utils_1.createGithubRelease)(octokit, owner, repo, releaseTag, releaseBranch, releaseNotesContent);

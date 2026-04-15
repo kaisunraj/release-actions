@@ -234,12 +234,14 @@ async function generateReleaseNotes(
     releaseTag,
   );
   let releaseNotesContent: string;
+  let links: string[] = [];
   if (tickets.length === 0) {
     core.info("No commits found between base branch and release branch. Creating release notes with no Jira tickets.");
     releaseNotesContent = "No Jira tickets found for this release.";
+    links = [];
   } else {
     console.log("Jira Tickets:", tickets);
-    const links = generateJiraLinks(confluenceSpace, tickets);
+    links = generateJiraLinks(confluenceSpace, tickets);
     console.log("Jira Links:", links);
     releaseNotesContent = generateReleaseNotesContent(links);
     console.log("Release Notes Content:", releaseNotesContent);
