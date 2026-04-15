@@ -233,15 +233,17 @@ async function generateReleaseNotes(
     baseBranch,
     releaseTag,
   );
+  let releaseNotesContent: string;
   if (tickets.length === 0) {
-    core.info("No commits found between base branch and release branch.");
-    return;
+    core.info("No commits found between base branch and release branch. Creating release notes with no Jira tickets.");
+    releaseNotesContent = "No Jira tickets found for this release.";
+  } else {
+    console.log("Jira Tickets:", tickets);
+    const links = generateJiraLinks(confluenceSpace, tickets);
+    console.log("Jira Links:", links);
+    releaseNotesContent = generateReleaseNotesContent(links);
+    console.log("Release Notes Content:", releaseNotesContent);
   }
-  console.log("Jira Tickets:", tickets);
-  const links = generateJiraLinks(confluenceSpace, tickets);
-  console.log("Jira Links:", links);
-  const releaseNotesContent = generateReleaseNotesContent(links);
-  console.log("Release Notes Content:", releaseNotesContent);
   if (createReleaseTag === true) {
     console.log(`Creating/updating GitHub release for tag ${releaseTag}...`);
     return await createGithubRelease(
