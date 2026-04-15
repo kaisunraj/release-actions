@@ -32138,6 +32138,7 @@ exports._getTicketsBetweenBranches = getTicketsBetweenBranches;
 exports.run = run;
 exports._filterJiraTickets = filterJiraTickets;
 exports._getMergedBranchNames = getMergedBranchNames;
+exports._findPreviousMinorBranch = findPreviousMinorBranch;
 exports._generateJiraLinks = generateJiraLinks;
 exports._generateReleaseNotes = generateReleaseNotes;
 exports._generateReleaseNotesContent = generateReleaseNotesContent;
@@ -32212,6 +32213,10 @@ async function findPreviousMinorBranch(octokit, owner, repo, releaseTag) {
     }
     const prevMinorReleaseTag = `v${versionParts[0]}.${versionParts[1] - 1}.0`;
     console.log(`Checking for existence of previous minor prerelease ${prevMinorReleaseTag}...`);
+    if (versionParts[1] === 0) {
+        console.log(`Previous minor release tag ${prevMinorReleaseTag} is not valid since minor version is 0.`);
+        return undefined;
+    }
     const prevMinorRelease = await (0, git_utils_1.releaseExists)(octokit, owner, repo, prevMinorReleaseTag);
     if (!prevMinorRelease) {
         console.log(`Previous minor ${prevMinorReleaseTag} does not exist or is not a prerelease.`);

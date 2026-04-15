@@ -8,6 +8,7 @@ const mockOctokit: any = github.getOctokit("fake-token");
 
 import {
   _filterJiraTickets,
+  _findPreviousMinorBranch,
   _generateJiraLinks,
   _generateReleaseNotes,
   _generateReleaseNotesContent,
@@ -127,7 +128,7 @@ describe("getTicketsBetweenBranches", () => {
   });
 });
 
-describe("_generateReleaseNotesContent", () => {
+describe("generateReleaseNotesContent", () => {
   it("returns a 'no tickets found' message when given an empty list", () => {
     const content = _generateReleaseNotesContent([]);
     expect(content).toBe("No Jira tickets found for this release.");
@@ -143,6 +144,54 @@ describe("_generateReleaseNotesContent", () => {
     expect(content).toBe(
       "Jira Tickets:\n- https://example.atlassian.net/browse/OVP-123\n- https://example.atlassian.net/browse/OVP-456\n- https://example.atlassian.net/browse/OVP-789",
     );
+  });
+});
+
+describe("findPreviousMinorBranch", () => {
+  it("returns the latest minor release branch that has a prerlease", async () => {
+    require("@actions/github").__setMockPaginate([
+      { name: "releases/v1.1.0", id: 789, draft: false },
+      { name: "releases/v1.2.1", id: 790, draft: false },
+      { name: "releases/v1.2.2", id: 791, draft: true },
+      { name: "releases/v1.2.3", id: 792, draft: true },
+    ]);
+    mockOctokit.request.mockResolvedValueOnce({
+      data: { id: 792, prerelease: true },
+    });
+    const result = await _findPreviousMinorBranch(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "v1.2.3",
+    );
+    expect(result).toBe("releases/v1.1.0");
+  });
+
+  it("returns undefined if no minor release branches with prerelese are found", async () => {
+    require("@actions/github").__setMockPaginate([
+      { name: "releases/v1.0.0", id: 789, draft: false },
+      { name: "releases/v1.0.1", id: 790, draft: false },
+      { name: "releases/v1.0.2", id: 791, draft: false },
+      { name: "releases/v1.0.3", id: 792, draft: false },
+    ]);
+    mockOctokit.request.mockRejectedValueOnce({ status: 404 });
+    const result = await _findPreviousMinorBranch(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "v1.0.3",
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it("returns undefined if the previous minor version is 0", async () => {
+    const result = await _findPreviousMinorBranch(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "v1.0.0",
+    );
+    expect(result).toBeUndefined();
   });
 });
 
@@ -197,7 +246,8 @@ describe("generateReleaseNotes", () => {
     ).resolves.toBe(456);
   });
 
-  it("resolves with undefined when no Jira tickets are found in commit messages", async () => {
+  it("creates release notes with no Jira tickets when no Jira tickets are found in commit messages", async () => {
+    setupMock();
     mockOctokit.request.mockResolvedValueOnce({
       data: {
         commits: [

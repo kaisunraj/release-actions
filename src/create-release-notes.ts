@@ -100,6 +100,12 @@ async function findPreviousMinorBranch(
   console.log(
     `Checking for existence of previous minor prerelease ${prevMinorReleaseTag}...`,
   );
+  if (versionParts[1] === 0) {
+    console.log(
+      `Previous minor release tag ${prevMinorReleaseTag} is not valid since minor version is 0.`,
+    );
+    return undefined;
+  }
   const prevMinorRelease = await releaseExists(
     octokit,
     owner,
@@ -236,7 +242,9 @@ async function generateReleaseNotes(
   let releaseNotesContent: string;
   let links: string[] = [];
   if (tickets.length === 0) {
-    core.info("No commits found between base branch and release branch. Creating release notes with no Jira tickets.");
+    core.info(
+      "No commits found between base branch and release branch. Creating release notes with no Jira tickets.",
+    );
     releaseNotesContent = "No Jira tickets found for this release.";
     links = [];
   } else {
@@ -291,6 +299,7 @@ export async function run() {
 export {
   filterJiraTickets as _filterJiraTickets,
   getMergedBranchNames as _getMergedBranchNames,
+  findPreviousMinorBranch as _findPreviousMinorBranch,
   generateJiraLinks as _generateJiraLinks,
   getTicketsBetweenBranches as _getTicketsBetweenBranches,
   generateReleaseNotes as _generateReleaseNotes,
