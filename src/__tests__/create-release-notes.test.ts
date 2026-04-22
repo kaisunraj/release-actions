@@ -215,8 +215,9 @@ describe("generateReleaseNotes", () => {
   it("updates the existing release and returns its id", async () => {
     setupMock();
     mockOctokit.request
-      .mockResolvedValueOnce({ data: { id: 123 } }) // releaseExists
-      .mockResolvedValueOnce({ data: { id: 123 } }); // updateRelease
+      .mockResolvedValueOnce({ data: { id: 123, prerelease: true } })
+      .mockResolvedValueOnce({ data: { id: 123 } })
+      .mockResolvedValueOnce({ data: { object: { sha: "abc123" } } });
     expect(
       _generateReleaseNotes(
         mockOctokit as any,
@@ -248,24 +249,26 @@ describe("generateReleaseNotes", () => {
 
   it("creates release notes with no Jira tickets when no Jira tickets are found in commit messages", async () => {
     setupMock();
-    mockOctokit.request.mockResolvedValueOnce({
-      data: {
-        commits: [
-          { commit: { message: "chore: update dependencies" } },
-          { commit: { message: "docs: update README" } },
-        ],
-      },
-    });
-    expect(
-      _generateReleaseNotes(
-        mockOctokit as any,
-        "owner",
-        "repo",
-        "confluenceSpace",
-        "main",
-        "releases/v1.0.0",
-      ),
-    ).resolves.toBeUndefined();
+    mockOctokit.request
+      .mockResolvedValueOnce({
+        data: {
+          commits: [
+            { commit: { message: "chore: update dependencies" } },
+            { commit: { message: "docs: update README" } },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({ data: { id: 123, prerelease: true } })
+      .mockResolvedValueOnce({ data: { object: { sha: "abc123" } } });
+    const result = await _generateReleaseNotes(
+      mockOctokit as any,
+      "owner",
+      "repo",
+      "confluenceSpace",
+      "main",
+      "releases/v1.0.0",
+    );
+    expect(result).toBeUndefined();
   });
 
   it("returns the latest draft release id and publishes it when base and release branches are the same", async () => {
