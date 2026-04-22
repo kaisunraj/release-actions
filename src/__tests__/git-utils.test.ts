@@ -330,10 +330,11 @@ describe("publishDraftRelease", () => {
 });
 
 describe("createGithubRelease", () => {
-  it("returns the existing release id when the release already exists", async () => {
-    const mockOctokit = {
-      request: jest.fn().mockResolvedValue({ data: { id: 789 } }),
-    };
+  it("Updates the tag to point at the latest commit on the release branch if release already exists", async () => {
+    mockOctokit.request
+      .mockResolvedValueOnce({ data: { id: 789, prerelease: true } })
+      .mockResolvedValueOnce({ data: { id: 789 } })
+      .mockResolvedValueOnce({ data: { object: { sha: "abc123" } } });
     const result = await createGithubRelease(
       mockOctokit as any,
       "owner",
@@ -343,6 +344,53 @@ describe("createGithubRelease", () => {
       "Release notes content",
     );
     expect(result).toEqual(789);
+    // Get latest release
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      1,
+      "GET /repos/{owner}/{repo}/releases/tags/{tag}",
+      expect.objectContaining({
+        owner: "owner",
+        repo: "repo",
+        tag: "v1.0.0",
+      }),
+    );
+    // Update latest release
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      2,
+      "PATCH /repos/{owner}/{repo}/releases/{release_id}",
+      expect.objectContaining({
+        body: "Release notes content",
+        name: "v1.0.0",
+        owner: "owner",
+        prerelease: true,
+        release_id: 789,
+        repo: "repo",
+        tag_name: "v1.0.0",
+        target_commitish: "releases/v1.0.0",
+      }),
+    );
+    // Get latest commit sha of release branch
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      3,
+      "GET /repos/{owner}/{repo}/git/ref/heads/{branch}",
+      expect.objectContaining({
+        owner: "owner",
+        repo: "repo",
+        branch: "releases/v1.0.0",
+      }),
+    );
+    // Update tag to point to latest commit sha
+    expect(mockOctokit.request).toHaveBeenNthCalledWith(
+      4,
+      "PATCH /repos/{owner}/{repo}/git/refs/tags/{tag}",
+      expect.objectContaining({
+        owner: "owner",
+        repo: "repo",
+        tag: "v1.0.0",
+        sha: "abc123",
+        force: true,
+      }),
+    );
   });
 
   it("creates and returns a new release id when the release does not exist", async () => {

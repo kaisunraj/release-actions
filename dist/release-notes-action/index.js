@@ -32608,15 +32608,16 @@ async function createRelease(octokit, owner, repo, tag, releaseBranch, body, pre
     });
     return { id: response.data.id };
 }
-function getLatestCommitSha(octokit, owner, repo, branch) {
-    return octokit.request("GET /repos/{owner}/{repo}/git/ref/heads/{branch}", {
+async function getLatestCommitSha(octokit, owner, repo, branch) {
+    const response = await octokit.request("GET /repos/{owner}/{repo}/git/ref/heads/{branch}", {
         owner,
         repo,
         branch,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
         },
-    }).then((response) => response.data.object.sha);
+    });
+    return response.data.object.sha;
 }
 /**
  * Updates an existing release in the specified repository with the given tag, target branch, and release notes content. The release to update is identified by the provided release ID.
@@ -32636,15 +32637,6 @@ async function updateRelease(octokit, owner, repo, releaseId, tag, releaseBranch
         name: tag,
         body: body,
         prerelease: prerelease,
-        headers: {
-            "X-GitHub-Api-Version": "2026-03-10",
-        },
-    });
-    // Update the tag to point at the latest commit on the release branch
-    await octokit.request("GET /repos/{owner}/{repo}/git/ref/tags/{tag}", {
-        owner,
-        repo,
-        tag,
         headers: {
             "X-GitHub-Api-Version": "2026-03-10",
         },
