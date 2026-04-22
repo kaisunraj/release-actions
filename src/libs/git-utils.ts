@@ -327,6 +327,17 @@ export async function createRelease(
   return { id: response.data.id };
 }
 
+function getLatestCommitSha(octokit: Octokit, owner: string, repo: string, branch: string) {
+  return octokit.request("GET /repos/{owner}/{repo}/git/ref/heads/{branch}", {
+    owner,
+    repo,
+    branch,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  }).then((response: { data: { object: { sha: string } } }) => response.data.object.sha);
+}
+
 /**
  * Updates an existing release in the specified repository with the given tag, target branch, and release notes content. The release to update is identified by the provided release ID.
  * @param releaseId - The ID of the release to update.
@@ -358,6 +369,33 @@ export async function updateRelease(
       "X-GitHub-Api-Version": "2026-03-10",
     },
   });
+  // Update the tag to point at the latest commit on the release branch
+  await octokit.request("GET /repos/{owner}/{repo}/git/ref/tags/{tag}", {
+    owner,
+    repo,
+    tag,
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+  });
+  // If the tag already exists, update it to point to the latest commit on the release branch
+  console.log(`Getting latest commit SHA for branch ${releaseBranch}...`);
+  const latestCommitSha = await getLatestCommitSha(octokit, owner, repo, releaseBranch.replace("origin/", ""));
+  console.log(`Latest commit SHA for branch ${releaseBranch} is ${latestCommitSha}`);
+  await octokit.request(
+    "PATCH /repos/{owner}/{repo}/git/refs/tags/{tag}",
+    {
+      owner,
+      repo,
+      tag,
+      sha: latestCommitSha, 
+      force: true,
+      headers: {
+        "X-GitHub-Api-Version": "2026-03-10",
+      },
+    },
+  );
+  console.log(`Updated existing tag ${tag} to point to ${releaseBranch} with SHA ${latestCommitSha}`);
 }
 
 export async function createGithubRelease(
