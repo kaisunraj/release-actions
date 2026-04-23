@@ -11,7 +11,7 @@ import {
 export type Octokit = ReturnType<typeof github.getOctokit>;
 
 function filterJiraTickets(commitMessages: string[]) {
-  const jiraTicketPattern = /OVP-\d+/g;
+  const jiraTicketPattern = /OVP-\d+/gi;
   const tickets = new Set<string>();
   commitMessages.forEach((message) => {
     const matches = message.match(jiraTicketPattern);
@@ -21,7 +21,7 @@ function filterJiraTickets(commitMessages: string[]) {
         ticketNos
           ?.filter((ticketNo) => parseInt(ticketNo) !== 0)
           .forEach((ticketNo) => {
-            tickets.add(ticket);
+            tickets.add(ticket.toUpperCase());
           });
       }
     }

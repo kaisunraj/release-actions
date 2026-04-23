@@ -32146,7 +32146,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const git_utils_1 = __nccwpck_require__(3824);
 function filterJiraTickets(commitMessages) {
-    const jiraTicketPattern = /OVP-\d+/g;
+    const jiraTicketPattern = /OVP-\d+/gi;
     const tickets = new Set();
     commitMessages.forEach((message) => {
         const matches = message.match(jiraTicketPattern);
@@ -32156,7 +32156,7 @@ function filterJiraTickets(commitMessages) {
                 ticketNos
                     ?.filter((ticketNo) => parseInt(ticketNo) !== 0)
                     .forEach((ticketNo) => {
-                    tickets.add(ticket);
+                    tickets.add(ticket.toUpperCase());
                 });
             }
         }
